@@ -1,0 +1,30 @@
+devel/
+logs/
+build/
+bin/
+lib/
+.catkin_tools
+
+
+
+src/course_packages/*
+src/course_packages/dd2419_launch/*
+!src/course_packages/dd2419_launch/
+!src/course_packages/dd2419_launch/worlds/
+!src/course_packages/dd2419_launch/launch/
+
+src/course_packages/dd2419_resources/*
+!src/course_packages/dd2419_resources/
+!src/course_packages/dd2419_resources/worlds_json/
+
+
+*.bag
+
+# ROS bag files to include
+!test.bag
+
+
+
+
+# Common code editors 
+*.idea/
