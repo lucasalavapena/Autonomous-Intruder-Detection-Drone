@@ -1,0 +1,126 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!--
+
+    Launch basic parts of the DD2419 components
+
+      - USB video receiver (libuvc_camera)
+      - Image rectification (imageproc)
+      - ArUco detector (aruco_ros)
+      - Crazyflie communication (crazyflie_ros)
+      - TF publisher for Crazyflie pose
+
+    Start by either giving the ch argument or the uri argument. If your
+    Crazyflie is on channel 92 for example, it would probably be easiest to run
+
+        roslaunch dd2419_launch base.launch ch:=92
+
+  -->
+
+  <arg name="marker_size"       default="0.20"/>    <!-- in m -->
+  <arg name="ch"/>
+  <arg name="uri"               default="radio://0/$(arg ch)/2M" />
+
+  <arg name="use_camera"    default="1"/>
+  <arg name="use_aruco"     default="1"/>
+  <arg name="use_crazyflie" default="1"/>
+  <arg name="world_name" default="lucas_room"/>
+  <arg name="gui" default="false"/>
+  <arg name="paused" default="false"/>
+  <arg name="debug" default="false"/>
+
+  <group ns="cf1/camera" if="$(arg use_camera)">
+    <node pkg="libuvc_camera" type="camera_node" name="camera" output="screen">
+      <!-- Parameters used to find the camera. Set to empty string to disable,
+           otherwise old parameters will linger in ROS. -->
+      <param name="vendor" value="0x18ec"/>
+      <param name="product" value=""/>
+      <!--param name="product" value="0x3399"/-->
+      <param name="serial" value=""/>
+      <param name="index" value="0"/>
+      
+      <!-- Image size and type -->
+      <param name="width" value="640"/>
+      <param name="height" value="480"/>
+      <param name="video_mode" value="mjpeg"/>
+      <param name="frame_rate" value="60"/>
+      
+      <param name="timestamp_method" value="start"/>
+      <param name="camera_info_url" value="file://$(find dd2419_launch)/calibration/camera.yaml"/>
+
+      <!-- Values defined at https://ken.tossell.net/libuvc/doc/group__ctrl.html#gaa583133ed035c141c42061d5c13a36bf -->
+      <param name="auto_exposure" value="2" />
+      <param name="auto_exposure_priority" value="0" />
+      <param name="brightness" value="128" />
+      <param name="gain" value="16" />
+      <param name="auto_white_balance" value="true" />
+    </node>
+  </group>
+  
+    <!-- The following line causes gzmsg and gzerr messages to be printed to the console
+      (even when Gazebo is started through roslaunch) -->
+  <arg name="verbose" default="true"/>
+
+  <env name="GAZEBO_MODEL_PATH" value="${GAZEBO_MODEL_PATH}:$(find crazyflie_gazebo)/models:$(find dd2419_launch)/models/signs:$(find dd2419_launch)/models/markers"/>
+  <env name="GAZEBO_RESOURCE_PATH" value="${GAZEBO_RESOURCE_PATH}:$(find crazyflie_gazebo)/models:$(find dd2419_launch)/models/signs:$(find dd2419_launch)/models/markers"/>
+
+    <!-- Start the Gazebo simulator -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find dd2419_launch)/worlds/$(arg world_name).world"/>
+    <arg name="debug" value="$(arg debug)" />
+    <arg name="paused" value="$(arg paused)" />
+    <arg name="gui" value="$(arg gui)" />
+    <arg name="verbose" value="$(arg verbose)"/>
+  </include>
+
+	<param name="xmin" value="-0.001"/>
+    <param name="ymin" value="-0.001"/>
+    <param name="xmax" value="1.769"/>
+    <param name="ymax" value="2.267"/>
+
+  <node pkg="image_proc" type="image_proc" name="image_proc" if="$(arg use_camera)">
+    <remap from="image_raw"        to="/cf1/camera/image_raw"/>
+    <remap from="camera_info"      to="/cf1/camera/camera_info"/>
+    <remap from="image_mono"       to="/cf1/camera/image_mono"/>
+    <remap from="image_color"      to="/cf1/camera/image_color"/>
+    <remap from="image_rect"       to="/cf1/camera/image_rect"/>
+    <remap from="image_rect_color" to="/cf1/camera/image_rect_color"/>
+  </node>
+
+  <node pkg="aruco_ros" type="marker_publisher" name="aruco" output="screen" if="$(arg use_aruco)">
+    <remap from="/camera_info" to="/cf1/camera/camera_info" />
+    <remap from="/image"       to="/cf1/camera/image_raw" />
+    <param name="image_is_rectified" value="false"/>
+    <param name="marker_size"        value="$(arg marker_size)"/>
+    <!-- frame in which the marker pose will be refered, leave empty and the
+         pose will be published wrt param parent_name -->
+    <param name="reference_frame"    value=""/>
+    <param name="camera_frame"       value="cf1/camera_link"/>
+  </node>
+
+  <node pkg="crazyflie_driver" type="crazyflie_server" name="crazyflie_server" output="screen" if="$(arg use_crazyflie)">
+    <remap from="/add_crazyflie" to="/cf1/add_crazyflie"/>
+  </node>
+  <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen" if="$(arg use_crazyflie)">
+    <param name="uri" value="$(arg uri)" />
+    <param name="tf_prefix" value="cf1" />
+    <param name="roll_trim" value="0" />
+    <param name="pitch_trim" value="0" />
+    <param name="enable_logging" value="true" />
+    <param name="use_ros_time" value="true" />
+    <param name="enable_logging_imu" value="true" />
+    <param name="enable_logging_temperature" value="true" />
+    <param name="enable_logging_magnetic_field" value="true" />
+    <param name="enable_logging_pressure" value="true" />
+    <param name="enable_logging_battery" value="true" />
+    <param name="enable_logging_packets" value="true"/>
+    <remap from="add_crazyflie" to="/cf1/add_crazyflie"/>
+  </node>
+  
+  <node pkg="tf2_ros" type="static_transform_publisher" name="odom_broadcaster" args="0.89 0.20 0 0 0 0 map cf1/odom" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="cf_camera_trans" args="0 0 0.02 -1.54 0 -1.54 cf1/base_link cf1/camera_link" if="$(arg use_crazyflie)" />
+
+  <node pkg="topic_tools" type="transform" name="base_link_publisher" args="/cf1/pose /tf tf/tfMessage '[[geometry_msgs.msg.TransformStamped(m.header, &quot;cf1/base_link&quot;, geometry_msgs.msg.Transform(m.pose.position, m.pose.orientation))]]' -i geometry_msgs" />
+
+</launch>
