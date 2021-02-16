@@ -1,4 +1,3 @@
-<?xml version="1.0"?>
 <launch>
 
   <!--
@@ -25,10 +24,6 @@
   <arg name="use_camera"    default="1"/>
   <arg name="use_aruco"     default="1"/>
   <arg name="use_crazyflie" default="1"/>
-  <arg name="world_name" default="lucas_room"/>
-  <arg name="gui" default="false"/>
-  <arg name="paused" default="false"/>
-  <arg name="debug" default="false"/>
 
   <group ns="cf1/camera" if="$(arg use_camera)">
     <node pkg="libuvc_camera" type="camera_node" name="camera" output="screen">
@@ -57,27 +52,6 @@
       <param name="auto_white_balance" value="true" />
     </node>
   </group>
-  
-    <!-- The following line causes gzmsg and gzerr messages to be printed to the console
-      (even when Gazebo is started through roslaunch) -->
-  <arg name="verbose" default="true"/>
-
-  <env name="GAZEBO_MODEL_PATH" value="${GAZEBO_MODEL_PATH}:$(find crazyflie_gazebo)/models:$(find dd2419_launch)/models/signs:$(find dd2419_launch)/models/markers"/>
-  <env name="GAZEBO_RESOURCE_PATH" value="${GAZEBO_RESOURCE_PATH}:$(find crazyflie_gazebo)/models:$(find dd2419_launch)/models/signs:$(find dd2419_launch)/models/markers"/>
-
-    <!-- Start the Gazebo simulator -->
-  <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(find dd2419_launch)/worlds/$(arg world_name).world"/>
-    <arg name="debug" value="$(arg debug)" />
-    <arg name="paused" value="$(arg paused)" />
-    <arg name="gui" value="$(arg gui)" />
-    <arg name="verbose" value="$(arg verbose)"/>
-  </include>
-
-	<param name="xmin" value="-0.001"/>
-    <param name="ymin" value="-0.001"/>
-    <param name="xmax" value="1.769"/>
-    <param name="ymax" value="2.267"/>
 
   <node pkg="image_proc" type="image_proc" name="image_proc" if="$(arg use_camera)">
     <remap from="image_raw"        to="/cf1/camera/image_raw"/>
@@ -117,8 +91,7 @@
     <param name="enable_logging_packets" value="true"/>
     <remap from="add_crazyflie" to="/cf1/add_crazyflie"/>
   </node>
-  
-  <node pkg="tf2_ros" type="static_transform_publisher" name="odom_broadcaster" args="0.89 0.20 0 0 0 0 map cf1/odom" />
+
   <node pkg="tf2_ros" type="static_transform_publisher" name="cf_camera_trans" args="0 0 0.02 -1.54 0 -1.54 cf1/base_link cf1/camera_link" if="$(arg use_crazyflie)" />
 
   <node pkg="topic_tools" type="transform" name="base_link_publisher" args="/cf1/pose /tf tf/tfMessage '[[geometry_msgs.msg.TransformStamped(m.header, &quot;cf1/base_link&quot;, geometry_msgs.msg.Transform(m.pose.position, m.pose.orientation))]]' -i geometry_msgs" />
