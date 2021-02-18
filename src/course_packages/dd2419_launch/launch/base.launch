@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <launch>
 
   <!--
@@ -13,13 +14,14 @@
     Start by either giving the ch argument or the uri argument. If your
     Crazyflie is on channel 92 for example, it would probably be easiest to run
 
-        roslaunch dd2419_launch base.launch ch:=92
+        roslaunch dd2419_launch base.launch ch:=91 world_name:=joakim
 
   -->
 
   <arg name="marker_size"       default="0.20"/>    <!-- in m -->
-  <arg name="ch"/>
+  <arg name="ch"		        default="91"/>
   <arg name="uri"               default="radio://0/$(arg ch)/2M" />
+  <arg name="world_name"        default="tutorial_1"/>
 
   <arg name="use_camera"    default="1"/>
   <arg name="use_aruco"     default="1"/>
@@ -92,8 +94,14 @@
     <remap from="add_crazyflie" to="/cf1/add_crazyflie"/>
   </node>
 
+  <node name="world_publisher" pkg="dd2419_simulation" type="world_publisher.py" output="screen">
+    <param name="json_file" value="$(find dd2419_resources)/worlds_json/$(arg world_name).world.json"/>
+  </node>
+
   <node pkg="tf2_ros" type="static_transform_publisher" name="cf_camera_trans" args="0 0 0.02 -1.54 0 -1.54 cf1/base_link cf1/camera_link" if="$(arg use_crazyflie)" />
 
   <node pkg="topic_tools" type="transform" name="base_link_publisher" args="/cf1/pose /tf tf/tfMessage '[[geometry_msgs.msg.TransformStamped(m.header, &quot;cf1/base_link&quot;, geometry_msgs.msg.Transform(m.pose.position, m.pose.orientation))]]' -i geometry_msgs" />
+  <node pkg="localisation" type="display_markers_map.py" name="display_markers_map" args="$(find dd2419_resources)/worlds_json/$(arg world_name).world.json" />
+  <node pkg="localisation" type="display_landmarks_map.py" name="display_landmarks_map" args="$(find dd2419_resources)/worlds_json/$(arg world_name).world.json" />
 
 </launch>
