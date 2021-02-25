@@ -4,7 +4,9 @@ build/
 bin/
 lib/
 .catkin_tools
-
+/venv
+.rosinstall
+.rosinstall.bak
 
 
 src/course_packages/*
