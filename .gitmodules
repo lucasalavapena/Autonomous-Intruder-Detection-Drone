@@ -1,0 +1,3 @@
+[submodule "src/perception/scripts/dd2419_detector_baseline_OG"]
+	path = src/perception/scripts/dd2419_detector_baseline_OG
+	url = git@github.com:lucasalavapena/dd2419_detector_baseline_OG.git
