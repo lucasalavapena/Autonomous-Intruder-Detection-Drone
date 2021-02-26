@@ -7,8 +7,7 @@ import time
 import rospy
 import os.path
 import cv2
-import numpy as np
-from std_msgs.msg import String
+import argparse
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 
@@ -31,7 +30,7 @@ MODEL_PATH = os.path.join(
 
 class image_converter:
 
-  def __init__(self):
+  def __init__(self, device):
         self.image_pub = rospy.Publisher("/myresult", Image, queue_size=2)
 
         self.bridge = CvBridge()
@@ -40,10 +39,16 @@ class image_converter:
 
         # self.detector = Detector().to("cpu")
         self.__detector__ = Detector()
+        self.device_type = device
 
-        self.gpu_device = torch.device("cuda:0")
-        self.detector = utils.load_model(self.__detector__, MODEL_PATH, self.gpu_device)
-        self.detector = self.detector.to(self.gpu_device)
+        if self.device_type == "cuda":
+            self.device = torch.device("cuda:0")
+            self.detector = utils.load_model(self.__detector__, MODEL_PATH, self.device)
+            self.detector = self.detector.to(self.device)
+        elif self.device_type == "cpu":
+            self.detector = utils.load_model(self.__detector__, MODEL_PATH, "cpu")
+        else:
+            print("Error")
         # self.model = torch.load(MODEL, map_location=torch.device('cpu'))
         # self.model.eval()
         self.trans = transforms.ToTensor()
@@ -60,7 +65,10 @@ class image_converter:
     except CvBridgeError as e:
         print(e)
     torch_im = self.trans(cv_image)
-    torch_im = torch.unsqueeze(torch_im, 0).to(self.gpu_device)
+    if self.device_type == "cuda":
+        torch_im = torch.unsqueeze(torch_im, 0).to(self.device)
+    else:
+        torch_im = torch.unsqueeze(torch_im, 0)
 
     self.detector.eval()
     with torch.no_grad():
@@ -117,7 +125,7 @@ def main(args):
   rospy.init_node('detection', anonymous=True)
 
 
-  ic = image_converter()
+  ic = image_converter(args)
 
   print("running...")
   try:
@@ -129,4 +137,9 @@ def main(args):
 
 
 if __name__ == '__main__':
-    main(sys.argv)
+    parser = argparse.ArgumentParser()
+    device = parser.add_mutually_exclusive_group(required=True)
+    device.add_argument("--cpu", dest="device", action="store_const", const="cpu")
+    device.add_argument("--gpu", dest="device", action="store_const", const="cuda")
+    args = parser.parse_args()
+    main(args.device)
