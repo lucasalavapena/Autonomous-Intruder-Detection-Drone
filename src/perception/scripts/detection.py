@@ -18,15 +18,16 @@ from torchvision import transforms
 
 # from dd2419_detector_baseline_OG import utils as NNutils
 # from dd2419_detector_baseline_OG.detector import Detector
-import dd2419_detector_baseline_OG.utils as NNutils
-import dd2419_detector_baseline_OG.detector as Detector
+# import dd2419_detector_baseline_OG.utils as NNutils
+from dd2419_detector_baseline_OG import utils as NNutils
+from dd2419_detector_baseline_OG.detector import Detector
 
 
 #TODO fix gitignore and detector_baseline location
 
 my_path = os.path.abspath(os.path.dirname(__file__))
 MODEL_PATH = os.path.join(
-    my_path, "../models/det_2021-02-23_17-31-04-501761.pt")  # Current model
+    my_path, "../models/det_2021-02-26_09-39-26-142893.pt")  # Current model
 
 class image_converter:
 
@@ -40,7 +41,6 @@ class image_converter:
         # self.detector = Detector().to("cpu")
         self.__detector__ = Detector()
         self.detector = NNutils.load_model(self.__detector__, MODEL_PATH, 'cpu')
-        self.detector.eval()
 
         # self.model = torch.load(MODEL, map_location=torch.device('cpu'))
         # self.model.eval()
@@ -60,6 +60,7 @@ class image_converter:
     torch_im = self.trans(cv_image)
     torch_im = torch.unsqueeze(torch_im, 0)
 
+    self.detector.eval()
     with torch.no_grad():
         start = time.time()
         out = self.detector(torch_im)
