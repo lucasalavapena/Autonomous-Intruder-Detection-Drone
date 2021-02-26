@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from __future__ import print_function
 
 import roslib
@@ -40,8 +40,10 @@ class image_converter:
 
         # self.detector = Detector().to("cpu")
         self.__detector__ = Detector()
-        self.detector = utils.load_model(self.__detector__, MODEL_PATH, 'cpu')
 
+        self.gpu_device = torch.device("cuda:0")
+        self.detector = utils.load_model(self.__detector__, MODEL_PATH, self.gpu_device)
+        self.detector = self.detector.to(self.gpu_device)
         # self.model = torch.load(MODEL, map_location=torch.device('cpu'))
         # self.model.eval()
         self.trans = transforms.ToTensor()
@@ -50,7 +52,7 @@ class image_converter:
 
   def callback(self, data):
     # Convert the image from OpenCV to ROS format
-    # torch.set_num_threads(12)    
+    # torch.set_num_threads(12)
     # print("NUMBER OF THREADS:",torch.get_num_threads())
 
     try:
@@ -58,7 +60,7 @@ class image_converter:
     except CvBridgeError as e:
         print(e)
     torch_im = self.trans(cv_image)
-    torch_im = torch.unsqueeze(torch_im, 0)
+    torch_im = torch.unsqueeze(torch_im, 0).to(self.gpu_device)
 
     self.detector.eval()
     with torch.no_grad():
