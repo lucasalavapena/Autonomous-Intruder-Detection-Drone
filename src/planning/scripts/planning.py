@@ -36,7 +36,10 @@ def create_msg(x, y, z):
     msg.pose.position.x = x
     msg.pose.position.y = y
     msg.pose.position.z = z
-
+    msg.pose.orientation.y = 0
+    msg.pose.orientation.x = 0
+    msg.pose.orientation.z = 0
+    msg.pose.orientation.w = 1
     return msg
 
 
@@ -53,7 +56,8 @@ def publish_cmd(goal):
 
     cmd = Position()
 
-    cmd.header = goal_odom.header
+    cmd.header.stamp = rospy.Time.now()
+    cmd.header.frame_id = goal_odom.header.frame_id
 
     cmd.x = goal_odom.pose.position.x
     cmd.y = goal_odom.pose.position.y
@@ -79,7 +83,7 @@ def main():
     my_path = os.path.abspath(os.path.dirname(__file__))
     map_path = os.path.join(my_path, "../..", "course_packages/dd2419_resources/worlds_json/planning_test_map.json")
     # print map_path
-
+    rospy.sleep(2)
     world_map = Map(map_path)
     path = RRT(0, 0, 1, 1.9, world_map)
     print(path)
