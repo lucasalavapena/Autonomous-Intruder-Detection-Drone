@@ -23,8 +23,14 @@ src/course_packages/dd2419_resources/*
 # ROS bag files to include
 !test.bag
 
-
+# Specific files to ignore
+cropped.zip
 
 
 # Common code editors 
 *.idea/
+.vscode/c_cpp_properties.json
+.vscode/settings.json
+src/.rosinstall.bak
+src/.rosinstall
+.vscode/launch.json
