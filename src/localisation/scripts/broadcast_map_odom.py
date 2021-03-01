@@ -83,7 +83,7 @@ def broadcast_marker(m):
     rotation_map_marker = PyKDL.Rotation.Quaternion(t_map.transform.rotation)
 
     transform = rotation_odom_marker * rotation_map_marker.Inverse()
-    (x, y, z, w) = transform.GetQuaternion()  # Get quaternion result
+    t_map_odom.transform.rotation = transform.GetQuaternion()  # Get quaternion result
     # t_map_odom.transform.rotation = rotation_odom_marker * rotation_map_marker.Inverse()
 
     # Calculate resulting position vector, map->odom
