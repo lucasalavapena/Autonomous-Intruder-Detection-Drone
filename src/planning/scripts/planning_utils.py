@@ -5,7 +5,8 @@ import random
 import math
 
 # for test
-# random.seed(19)
+random.seed(19)
+DRONE_MAX_SIDE = 0.15
 
 def RRT(curr_x, curr_y, goal_x, goal_y, Map):
     """
@@ -49,7 +50,7 @@ def generate_path(node):
     parent = tmp.parent
 
     while parent is not None:
-        controls.insert(0, (parent.x, parent.y))
+        path.insert(0, (parent.x, parent.y))
         tmp = parent
         parent = tmp.parent
 
@@ -129,13 +130,13 @@ class Node:
 
 # The class representing the room and its limits
 class Map:
-    def __init__(self, map_path):
+    def __init__(self, map_path, expansion_factor=0.1):
         self.obstacles = []
         self.airspace = None
-        self.build_map(map_path)
+        self.build_map(map_path, expansion_factor)
 
 
-    def build_map(self, map_path):
+    def build_map(self, map_path, expansion_factor):
         """
 
         :param map_path:
@@ -153,7 +154,19 @@ class Map:
             for obs in map_data["walls"]:
                 x_start, y_start, z_start = obs["plane"]["start"]
                 x_end, y_end, z_end = obs["plane"]["stop"]
-                self.obstacles.append((x_start, y_start, z_start, x_end, y_end, z_end))
+
+                x_start = min(x_start, x_end)
+                x_end = max(x_start, x_end)
+
+                y_start = min(x_start, y_end)
+                y_end = max(x_start, y_end)
+
+                self.obstacles.append(((1 - expansion_factor) * (x_start - DRONE_MAX_SIDE),
+                                       (1 - expansion_factor) * (y_start - DRONE_MAX_SIDE),
+                                       z_start,
+                                       (1 + expansion_factor) * (x_end + DRONE_MAX_SIDE),
+                                       (1 + expansion_factor) * (y_end + DRONE_MAX_SIDE),
+                                       z_end))
         else:
             print("No obstacles")
 
