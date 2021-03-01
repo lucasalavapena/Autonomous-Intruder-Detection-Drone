@@ -4,6 +4,7 @@ from __future__ import print_function
 import roslib
 import sys
 import time
+import math
 import rospy
 import os.path
 import cv2
@@ -12,6 +13,7 @@ import numpy as np
 from sensor_msgs.msg import Image, CameraInfo
 from geometry_msgs.msg import PoseStamped
 from cv_bridge import CvBridge, CvBridgeError
+from tf.transformations import quaternion_from_euler
 
 import torch
 import torch.nn as nn
@@ -34,6 +36,8 @@ class image_converter:
 
   def __init__(self, device):
         self.image_pub = rospy.Publisher("/myresult", Image, queue_size=2)
+        self.sign_pose_pub  = rospy.Publisher('/detected_sign_pose', PoseStamped, queue_size=10)
+
 
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber(
@@ -163,6 +167,21 @@ class image_converter:
                 # Will do for now (Hardcoded for MS1)
                 # cv_image = self.draw(cv_image, center, a/xis_points_2D)
                 cv_image = self.draw_axis(cv_image, R, tvec, K)
+
+                # Hardcoded dummy pose message as of now
+                sign_pose = PoseStamped()
+                sign_pose.header.frame_id = 'cf1/camera_link'
+                sign_pose.pose.position.x = 0.0
+                sign_pose.pose.position.y = 0.0
+                sign_pose.pose.position.z = 0.0
+                (sign_pose.pose.orientation.x,
+                sign_pose.pose.orientation.y,
+                sign_pose.pose.orientation.z,
+                sign_pose.pose.orientation.w,) = quaternion_from_euler(math.radians(0),
+                                                                math.radians(0),
+                                                                math.radians(0))
+
+                self.sign_pose_pub.publish(sign_pose)
 
 
     try:
