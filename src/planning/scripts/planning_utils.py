@@ -1,7 +1,54 @@
 #!/usr/bin/env python
 
-
 import json
+import random
+import math
+
+def RRT(curr_x, curr_y, goal_x, goal_y, Map):
+    start_node = Node(curr_x, curr_y)
+    goal_node = Node(goal_x, goal_y)
+    Tree = [start_node]
+    path_found = False
+
+    while not path_found:
+        rand_node = random_node(Map.airspace, goal_node)
+        # closest node in tree
+        nearest_node = find_nearest_node(Tree, rand_node)
+        Tree, flag = grow(rand_node, nearest_node)
+
+
+def distance(from_node, to_node):
+    return math.hypot(from_node.x - to_node.x, from_node.y - to_node.y)
+
+def find_nearest_node(tree, new_node):
+    nearest = tree[0]
+    dist = float('inf')
+
+    for node in tree:
+        new_dist = distance(node, new_node)
+        if new_dist < dist:
+            nearest = node
+            dist = new_dist
+
+    return nearest
+
+
+def random_node(airspace, goal, prob_goal=0.2):
+    x_start, y_start, _, x_end, y_end, _ = airspace
+    if random.uniform(0, 1) < prob_goal:
+        return goal.copy()
+    else:
+        return Node(random.uniform(x_start, x_end), random.uniform(y_start, y_end))
+
+
+class Node:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.path_x = []
+        self.path_y = []
+        self.parent = None
+
 
 
 # The class representing the room and its limits
