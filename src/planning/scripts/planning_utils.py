@@ -8,14 +8,75 @@ def RRT(curr_x, curr_y, goal_x, goal_y, Map):
     start_node = Node(curr_x, curr_y)
     goal_node = Node(goal_x, goal_y)
     Tree = [start_node]
-    path_found = False
 
     while not path_found:
         rand_node = random_node(Map.airspace, goal_node)
         # closest node in tree
         nearest_node = find_nearest_node(Tree, rand_node)
-        Tree, flag = grow(rand_node, nearest_node)
+        Tree = grow(rand_node, nearest_node, Map)
 
+        if distance(Tree[-1], goal_node) == 0:
+            break
+
+    if limit:
+        times = np.arange(0, 20, 0.01)
+        controls = np.zeros(len(times) - 1)
+    else:
+        controls = generate_controls(Tree[-1])
+
+    return controls
+
+def generate_controls(node):
+    controls = []
+    parent = node.parent
+    tmp = node
+
+    while parent is not None:
+        phis = tmp.path_phi
+        controls = phis + controls
+        tmp = tmp.parent
+        parent = tmp.parent
+
+    return controls
+
+def grow(rand_node, nearest_node, Map):
+    coords = get_path(rand_node, nearest_node)
+
+    for (x,y) in coords:
+        Map.is_passable(x, y)
+
+
+def grow(from_node, to_node, car, obs, x_lims, y_lims):
+    steps = 100
+    tmp = from_node
+    phi = calc_phi(from_node, to_node)
+
+    x_path = [tmp.x]
+    y_path = [tmp.y]
+    phis = [phi]
+
+    for i in range(steps):
+        xn, yn, thetan = step(car, tmp.x, tmp.y, tmp.theta, phi, dt=0.01)
+        tmp = Node(xn, yn, thetan)
+
+        phi = calc_phi(tmp, to_node)
+
+        if distance(tmp, to_node) < 1.0:  # close enough to stop
+            break
+
+        x_path.append(xn)
+        y_path.append(yn)
+        phis.append(phi)
+
+    tmp.path_x = x_path[:-1]
+    tmp.path_y = y_path[:-1]
+    tmp.path_phi = phis[:-1]
+    tmp.parent = from_node
+
+    for x, y in zip(tmp.path_x, tmp.path_y):
+        if not valid(Node(x, y, 0), obs, x_lims, y_lims):
+            return -1
+    return tmp
 
 def distance(from_node, to_node):
     return math.hypot(from_node.x - to_node.x, from_node.y - to_node.y)
