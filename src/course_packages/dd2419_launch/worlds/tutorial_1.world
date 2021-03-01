@@ -125,7 +125,7 @@
           <pose frame="">-5.5 -3.5 1.5 0 0 -0.785398163397</pose>
           <geometry>
             <box>
-              <size>1.41421356237 0.02 3.0</size>
+              <size>1.41421356236 0.02 3.0</size>
             </box>
           </geometry>
           <material>
