@@ -79,9 +79,9 @@ tf_buf = tf2_ros.Buffer()
 tf_lstn = tf2_ros.TransformListener(tf_buf)
 
 
-def main():
+def main(file="planning_test_map.json"):
     my_path = os.path.abspath(os.path.dirname(__file__))
-    map_path = os.path.join(my_path, "../..", "course_packages/dd2419_resources/worlds_json/planning_test_map.json")
+    map_path = os.path.join(my_path, "../..", "course_packages/dd2419_resources/worlds_json", file)
     # print map_path
     rospy.sleep(2)
     world_map = Map(map_path)
