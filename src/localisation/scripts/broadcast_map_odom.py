@@ -4,6 +4,7 @@ import rospy
 import tf2_ros
 import tf2_geometry_msgs
 import numpy as np
+import PyKDL
 from tf.transformations import quaternion_multiply, quaternion_conjugate
 from aruco_msgs.msg import MarkerArray
 from geometry_msgs.msg import Transform, PoseStamped, TransformStamped, Quaternion, Vector3
