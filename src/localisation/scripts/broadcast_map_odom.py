@@ -35,45 +35,62 @@ def broadcast_marker(m):
 
     # Find rotation between map and odom
     # Inverse of marker orientation
-    q_marker_inv = [0] * 4
-    q_marker_inv[0] = marker.pose.orientation.x
-    q_marker_inv[1] = marker.pose.orientation.y
-    q_marker_inv[2] = marker.pose.orientation.z
-    q_marker_inv[3] = -marker.pose.orientation.w
+    #q_marker_inv = [0] * 4
+    #q_marker_inv[0] = marker.pose.orientation.x
+    #q_marker_inv[1] = marker.pose.orientation.y
+    #q_marker_inv[2] = marker.pose.orientation.z
+    #q_marker_inv[3] = -marker.pose.orientation.w
 
     # rotation of static marker in map
-    q_trans = [0] * 4
-    q_trans[0] = t_map.transform.rotation.x
-    q_trans[1] = t_map.transform.rotation.y
-    q_trans[2] = t_map.transform.rotation.z
-    q_trans[3] = t_map.transform.rotation.w
+    #q_trans = [0] * 4
+    #q_trans[0] = t_map.transform.rotation.x
+    #q_trans[1] = t_map.transform.rotation.y
+    #q_trans[2] = t_map.transform.rotation.z
+    #q_trans[3] = t_map.transform.rotation.w
 
     # Calculate resulting rotation between map and odom
-    q_r = quaternion_multiply(q_trans, q_marker_inv)
-    t_quat = Quaternion(q_r[0], q_r[1], q_r[2], q_r[3]) # change format of quaternion to fit message type
-    t_map_odom.transform.rotation = t_quat
+    #q_r = quaternion_multiply(q_trans, q_marker_inv)
+    #t_quat = Quaternion(q_r[0], q_r[1], q_r[2], q_r[3]) # change format of quaternion to fit message type
+    #t_map_odom.transform.rotation = t_quat
 
     # Save position of detected marker in different format to work with quaternion_multiply
-    v_marker = [0] * 4
-    v_marker[0] = marker.pose.position.x
-    v_marker[1] = marker.pose.position.y
-    v_marker[2] = marker.pose.position.z
-    v_marker[3] = 0 # to match length of quaternion vector
+    #v_marker = [0] * 4
+    #v_marker[0] = marker.pose.position.x
+    #v_marker[1] = marker.pose.position.y
+    #v_marker[2] = marker.pose.position.z
+    #v_marker[3] = 0 # to match length of quaternion vector
 
     # Define rotation quaternion to use on detected marker position TO BE CHANGED
-    q_map_marker = [0] * 4
-    q_map_marker[0] = 0#t_map.transform.rotation.x
-    q_map_marker[1] = 0#t_map.transform.rotation.y
-    q_map_marker[2] = 0#t_map.transform.rotation.z
-    q_map_marker[3] = 1#t_map.transform.rotation.w
+    #q_map_marker = [0] * 4
+    #q_map_marker[0] = 0#t_map.transform.rotation.x
+    #q_map_marker[1] = 0#t_map.transform.rotation.y
+    #q_map_marker[2] = 0#t_map.transform.rotation.z
+    #q_map_marker[3] = 1#t_map.transform.rotation.w
 
     # Caculate rotated detected marker position in map(?) frame
-    v_res = qv_mult(q_r, v_marker)
+    #v_res = qv_mult(q_r, v_marker)
 
     # Calculate resulting position vector, map->odom
-    t_map_odom.transform.translation.x = v_res[0] - t_map.transform.translation.x
-    t_map_odom.transform.translation.y = v_res[1] - t_map.transform.translation.y
-    t_map_odom.transform.translation.z = v_res[2] - t_map.transform.translation.z
+    #t_map_odom.transform.translation.x = v_res[0] - t_map.transform.translation.x
+    #t_map_odom.transform.translation.y = v_res[1] - t_map.transform.translation.y
+    #t_map_odom.transform.translation.z = v_res[2] - t_map.transform.translation.z
+
+    # Find rotation between map and odom
+    # Rotation of the detected marker in odom
+    rotation_odom_marker = PyKDL.Rotation.Quaternion(marker.pose.orientation)
+
+    # Rotation of a static marker in the map
+    rotation_map_marker = PyKDL.Rotation.Quaternion(t_map.transform.rotation)
+
+    transform = rotation_odom_marker * rotation_map_marker.Inverse()
+    (x, y, z, w) = transform.GetQuaternion()  # Get quaternion result
+    # t_map_odom.transform.rotation = rotation_odom_marker * rotation_map_marker.Inverse()
+
+    # Calculate resulting position vector, map->odom
+    t_map_odom.transform.translation.x = x - t_map.transform.translation.x
+    t_map_odom.transform.translation.y = y - t_map.transform.translation.y
+    t_map_odom.transform.translation.z = z - t_map.transform.translation.z
+
     br.sendTransform(t_map_odom)
 
 
