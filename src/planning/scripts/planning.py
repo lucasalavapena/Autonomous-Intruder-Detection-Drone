@@ -3,9 +3,10 @@ import math
 import rospy
 import tf2_ros
 from tf.transformations import euler_from_quaternion
+import tf2_geometry_msgs
 from geometry_msgs.msg import PoseStamped
 from crazyflie_driver.msg import Position
-
+import os.path
 from planning_utils import Map, RRT
 
 
@@ -40,12 +41,15 @@ def create_msg(x, y, z):
 
 
 def publish_cmd(goal):
+    goal.header.stamp = rospy.Time.now()
+    timeout = rospy.Duration(0.5)
 
-    timeout = rospy.Duration(0.1)
     while not tf_buf.can_transform(goal.header.frame_id, 'cf1/odom', goal.header.stamp, timeout):
         rospy.logwarn_throttle(5.0, 'No transform from %s to cf1/odom' % goal.header.frame_id)
         return
     goal_odom = tf_buf.transform(goal, 'cf1/odom')
+
+    rospy.loginfo_throttle(5, 'goal in odom:\n%s', goal_odom)
 
     cmd = Position()
 
@@ -72,9 +76,13 @@ tf_lstn = tf2_ros.TransformListener(tf_buf)
 
 
 def main():
-    world_map = Map("course_packages/dd2419_resources/worlds_json/planning_test_map.json")
-    path = RRT(0, 0, 1, 1.9, world_map)
+    my_path = os.path.abspath(os.path.dirname(__file__))
+    map_path = os.path.join(my_path, "../..", "course_packages/dd2419_resources/worlds_json/planning_test_map.json")
+    # print map_path
 
+    world_map = Map(map_path)
+    path = RRT(0, 0, 1, 1.9, world_map)
+    print(path)
     goals = [create_msg(x, y, 0.5) for (x, y) in path]
     rate = rospy.Rate(10)  # Hz
     i = 0
@@ -83,6 +91,7 @@ def main():
         publish_cmd(goal)
         if current_info is not None:
             if goal_is_met(goal, current_info) and goal != goals[-1]:
+                print "Goal met"
                 i += 1
 
 if __name__ == '__main__':
