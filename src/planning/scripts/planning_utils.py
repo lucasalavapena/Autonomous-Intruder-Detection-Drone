@@ -4,7 +4,19 @@ import json
 import random
 import math
 
+# for test
+# random.seed(19)
+
 def RRT(curr_x, curr_y, goal_x, goal_y, Map):
+    """
+    computes the RRT path
+    :param curr_x:
+    :param curr_y:
+    :param goal_x:
+    :param goal_y:
+    :param Map:
+    :return:
+    """
     start_node = Node(curr_x, curr_y)
     goal_node = Node(goal_x, goal_y)
     Tree = [start_node]
@@ -19,40 +31,67 @@ def RRT(curr_x, curr_y, goal_x, goal_y, Map):
         if new_node != -1:
             Tree.append(new_node)
 
+
         if distance(Tree[-1], goal_node) == 0:
             break
-    controls = generate_controls(Tree[-1])
+    path = generate_path(Tree[-1])
 
-    return controls
+    return path
 
-def generate_controls(node):
-    controls = [(node.x, node.y)]
+def generate_path(node):
+    """
+    generates the path
+    :param node:
+    :return:
+    """
+    path = [(node.x, node.y)]
     tmp = node
     parent = tmp.parent
 
     while parent is not None:
-        controls.append((parent.x, parent.y))
+        controls.insert(0, (parent.x, parent.y))
         tmp = parent
         parent = tmp.parent
 
-    return controls
+    return path[1:]
 
 def grow(rand_node, nearest_node, Map, steps = 100):
+    """
+    check if I can grow the free is so returns the node to add to the tree
+    :param rand_node:
+    :param nearest_node: node that is in the tree already
+    :param Map: map class to check if a path is allowable
+    :param steps: how many steps it should take to check that there is no collision
+    :return:
+    """
 
     delta_x = (rand_node.x - nearest_node.x) / steps
     delta_y = (rand_node.y - nearest_node.y) / steps
 
-    for i in range(1, steps):
+    for i in range(1, steps +1):
         x = nearest_node.x + i * delta_x
         y = nearest_node.y + i * delta_y
         if not Map.is_passable(x, y):
             return -1
+    rand_node.parent = nearest_node
     return rand_node
 
 def distance(from_node, to_node):
+    """
+    Distance between 2 points in 2D space
+    :param from_node: Node 1
+    :param to_node: Node 2
+    :return:
+    """
     return math.hypot(from_node.x - to_node.x, from_node.y - to_node.y)
 
 def find_nearest_node(tree, new_node):
+    """
+    Finds nearest nde
+    :param tree:
+    :param new_node:
+    :return:
+    """
     nearest = tree[0]
     dist = float('inf')
 
@@ -66,6 +105,13 @@ def find_nearest_node(tree, new_node):
 
 
 def random_node(airspace, goal, prob_goal=0.2):
+    """
+    obtains a random node within the airspace
+    :param airspace:
+    :param goal:
+    :param prob_goal:
+    :return:
+    """
     x_start, y_start, _, x_end, y_end, _ = airspace
     if random.uniform(0, 1) < prob_goal:
         return goal
@@ -77,8 +123,6 @@ class Node:
     def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.path_x = []
-        self.path_y = []
         self.parent = None
 
 
@@ -88,12 +132,12 @@ class Map:
     def __init__(self, map_path):
         self.obstacles = []
         self.airspace = None
-        self.map = self.build_map(map_path)
+        self.build_map(map_path)
 
 
     def build_map(self, map_path):
         """
-        builds the map, by
+
         :param map_path:
         :return:
         """
@@ -131,8 +175,8 @@ class Map:
 
 
 def test():
-    # world_map = Map("src/course_packages/dd2419_resources/worlds_json/planing-test.json")
-    world_map = Map("src/course_packages/dd2419_resources/worlds_json/tutorial_1.world.json")
+    world_map = Map("course_packages/dd2419_resources/worlds_json/planning_test_map.json")
+    # world_map = Map("src/course_packages/dd2419_resources/worlds_json/tutorial_1.world.json")
     result = RRT(0, 0, 1, 1.9, world_map)
     print(result)
 if __name__ == "__main__":
