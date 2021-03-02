@@ -6,7 +6,7 @@
   },
 
   "gate_size": [0.40, 0.40],
-  "marker_size": [0.155, 0.155],
+  "marker_size": [0.145, 0.155],
   "roadsign_size": [0.19, 0.19],
 
   "markers": [
