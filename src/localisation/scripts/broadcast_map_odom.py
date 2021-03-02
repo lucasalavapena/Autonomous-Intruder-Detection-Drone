@@ -57,10 +57,11 @@ def broadcast_marker(m):
     t1 = t_map.transform.translation.x - np.cos(yaw)*marker.pose.position.x + np.sin(yaw)*marker.pose.position.y
     t2 = t_map.transform.translation.y - np.sin(yaw) * marker.pose.position.x - np.cos(yaw) * marker.pose.position.y
 
+    print(marker.pose.position.z)
     #  Add values to transform
     t.transform.translation.x = t1
     t.transform.translation.y = t2
-    t.transform.translation.z = marker.pose.position.z
+    t.transform.translation.z = t_map.transform.translation.z - marker.pose.position.z
     br.sendTransform(t)
 
 
