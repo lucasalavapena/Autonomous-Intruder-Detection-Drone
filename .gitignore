@@ -4,10 +4,7 @@ build/
 bin/
 lib/
 .catkin_tools
-<<<<<<< HEAD
-=======
 /venv
->>>>>>> localisation
 .rosinstall
 .rosinstall.bak
 
@@ -35,12 +32,6 @@ cropped.zip
 
 # Common code editors 
 *.idea/
-<<<<<<< HEAD
-.vscode/c_cpp_properties.json
-.vscode/settings.json
 src/.rosinstall.bak
 src/.rosinstall
-.vscode/launch.json
-=======
 *.vscode/
->>>>>>> localisation

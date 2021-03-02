@@ -93,15 +93,12 @@
     <remap from="add_crazyflie" to="/cf1/add_crazyflie"/>
   </node>
 
-<<<<<<< HEAD
-=======
   <!-- Make world visible in Rviz -->
   <node name="world_publisher" pkg="dd2419_simulation" type="world_publisher.py" output="screen">
     <param name="json_file" value="$(find dd2419_resources)/worlds_json/$(arg world_name).world.json"/>
   </node>
 
   <!-- Static transforms -->
->>>>>>> localisation
   <node pkg="tf2_ros" type="static_transform_publisher" name="cf_camera_trans" args="0 0 0.02 -1.54 0 -1.54 cf1/base_link cf1/camera_link" if="$(arg use_crazyflie)" />
   <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="test" args="1 1 0 0 0 0 1 cf1/base_link cf1/odom" if="$(arg use_crazyflie)" /> -->
   <node pkg="localisation" type="base_footprint_publisher.py" name="base_footprint_publisher" /><node pkg="localisation" type="display_markers_map.py" name="display_markers_map" args="$(find dd2419_resources)/worlds_json/$(arg world_name).world.json" />
