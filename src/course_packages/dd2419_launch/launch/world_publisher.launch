@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+
+<launch>
+  <arg name="world_name" default="tutorial_1"/>
+
+  <node name="world_publisher" pkg="dd2419_simulation" type="world_publisher.py" output="screen">
+    <param name="json_file" value="$(find dd2419_resources)/worlds_json/$(arg world_name).world.json"/>
+  </node>
+
+</launch>
