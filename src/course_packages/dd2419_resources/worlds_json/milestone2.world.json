@@ -6,13 +6,13 @@
   },
 
   "gate_size": [0.40, 0.40],
-  "marker_size": [0.145, 0.155],
+  "marker_size": [0.17, 0.17],
   "roadsign_size": [0.19, 0.19],
 
   "markers": [
     {"id": 1, "pose": {"position": [0.005, 0.7, 0.8], "orientation": [0.0, -90.0, -90.0]}},
-    {"id": 2, "pose": {"position": [2,  0.7, 0.005], "orientation": [0, 0, 180]}},
-    {"id": 5, "pose": {"position": [0.87, 1.2, 0.38], "orientation": [90, 0, 180]}}
+    {"id": 2, "pose": {"position": [2,  0.7, 0.005], "orientation": [90, 0, 0]}},
+    {"id": 5, "pose": {"position": [0.87, 1.2, 0.38], "orientation": [-90, -90, -90]}}
   ],
 
   "walls": [
