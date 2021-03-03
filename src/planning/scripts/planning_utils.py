@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-
+from __future__ import division
 import json
 import random
 import math
 
 # for test
-random.seed(19)
+# random.seed(19)
 DRONE_MAX_SIDE = 0.15
 
 def RRT(curr_x, curr_y, goal_x, goal_y, Map):
@@ -22,6 +22,7 @@ def RRT(curr_x, curr_y, goal_x, goal_y, Map):
     goal_node = Node(goal_x, goal_y)
     Tree = [start_node]
 
+    i = 0
     while True:
         rand_node = random_node(Map.airspace, goal_node)
 
@@ -35,6 +36,8 @@ def RRT(curr_x, curr_y, goal_x, goal_y, Map):
 
         if distance(Tree[-1], goal_node) == 0:
             break
+        i += 1
+        print("counter", i)
     path = generate_path(Tree[-1])
 
     return path
@@ -56,7 +59,7 @@ def generate_path(node):
 
     return path[1:]
 
-def grow(rand_node, nearest_node, Map, steps = 100):
+def grow(rand_node, nearest_node, Map, steps = 50):
     """
     check if I can grow the free is so returns the node to add to the tree
     :param rand_node:
@@ -68,7 +71,6 @@ def grow(rand_node, nearest_node, Map, steps = 100):
 
     delta_x = (rand_node.x - nearest_node.x) / steps
     delta_y = (rand_node.y - nearest_node.y) / steps
-
     for i in range(1, steps +1):
         x = nearest_node.x + i * delta_x
         y = nearest_node.y + i * delta_y
@@ -130,7 +132,7 @@ class Node:
 
 # The class representing the room and its limits
 class Map:
-    def __init__(self, map_path, expansion_factor=0.1):
+    def __init__(self, map_path, expansion_factor=0.2):
         self.obstacles = []
         self.airspace = None
         self.build_map(map_path, expansion_factor)
@@ -161,12 +163,19 @@ class Map:
                 y_start = min(x_start, y_end)
                 y_end = max(x_start, y_end)
 
-                self.obstacles.append(((1 - expansion_factor) * (x_start - DRONE_MAX_SIDE),
-                                       (1 - expansion_factor) * (y_start - DRONE_MAX_SIDE),
+                # self.obstacles.append(((1 - expansion_factor) * (x_start - DRONE_MAX_SIDE),
+                #                        (1 - expansion_factor) * (y_start - DRONE_MAX_SIDE),
+                #                        z_start,
+                #                        (1 + expansion_factor) * (x_end + DRONE_MAX_SIDE),
+                #                        (1 + expansion_factor) * (y_end + DRONE_MAX_SIDE),
+                #                        z_end))
+                self.obstacles.append(( (x_start - DRONE_MAX_SIDE) - expansion_factor,
+                                        (y_start - DRONE_MAX_SIDE) - expansion_factor,
                                        z_start,
-                                       (1 + expansion_factor) * (x_end + DRONE_MAX_SIDE),
-                                       (1 + expansion_factor) * (y_end + DRONE_MAX_SIDE),
+                                        (x_end + DRONE_MAX_SIDE) + expansion_factor,
+                                        (y_end + DRONE_MAX_SIDE) + expansion_factor,
                                        z_end))
+
         else:
             print("No obstacles")
 
@@ -177,7 +186,7 @@ class Map:
         checks if a
         """
         # check if it is within the airspace
-        if x > self.airspace[3] or x < self.airspace[0]  or y > self.airspace[4] or y < self.airspace[1]:
+        if x > self.airspace[3] or x < self.airspace[0]   or y > self.airspace[4] or y < self.airspace[1]:
             return False
         # check against obstacles
         for obs in self.obstacles:
