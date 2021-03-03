@@ -34,10 +34,10 @@ def RRT(curr_x, curr_y, goal_x, goal_y, Map):
             Tree.append(new_node)
 
 
-        if distance(Tree[-1], goal_node) == 0:
+        if distance(Tree[-1], goal_node) <= 0.2:
             break
         i += 1
-        print("counter", i)
+        
     path = generate_path(Tree[-1])
 
     return path

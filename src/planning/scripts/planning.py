@@ -31,9 +31,11 @@ class PathPlanner:
         self.current_info = msg
 
     def goal_is_met(self, goal, current_info):
-        if (goal.x + self.ERROR_TOLERANCE > current_info.pose.position.x > goal.x - self.ERROR_TOLERANCE and
-                goal.y + self.ERROR_TOLERANCE > current_info.pose.position.y > goal.y - self.ERROR_TOLERANCE and
-                goal.z + self.ERROR_TOLERANCE > current_info.pose.position.z > goal.z - self.ERROR_TOLERANCE):
+        print("current_info: ",current_info)
+        print("goal: ", goal)
+        if (goal.pose.position.x + self.ERROR_TOLERANCE > current_info.pose.position.x > goal.pose.position.x - self.ERROR_TOLERANCE and
+                goal.pose.position.y + self.ERROR_TOLERANCE > current_info.pose.position.y > goal.pose.position.y - self.ERROR_TOLERANCE and
+                goal.pose.position.z + self.ERROR_TOLERANCE > current_info.pose.position.z > goal.pose.position.z - self.ERROR_TOLERANCE):
             return True
         else:
             return False
