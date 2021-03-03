@@ -8,10 +8,15 @@ from tf.transformations import quaternion_multiply, euler_from_quaternion
 from aruco_msgs.msg import MarkerArray
 from geometry_msgs.msg import PoseStamped, TransformStamped, Quaternion
 
+transforms = None
+
 
 def marker_callback(msg):
-    for marker in msg.markers:
-        broadcast_marker(marker)
+    global transforms
+    transforms = []
+    for m in msg.markers:
+        temp = broadcast_marker(m)
+        transforms.append(temp)
 
 
 def broadcast_marker(m):
@@ -57,25 +62,36 @@ def broadcast_marker(m):
     t1 = t_map.transform.translation.x - np.cos(yaw)*marker.pose.position.x + np.sin(yaw)*marker.pose.position.y
     t2 = t_map.transform.translation.y - np.sin(yaw) * marker.pose.position.x - np.cos(yaw) * marker.pose.position.y
 
-    print(marker.pose.position.z)
     #  Add values to transform
     t.transform.translation.x = t1
     t.transform.translation.y = t2
-    t.transform.translation.z = t_map.transform.translation.z - marker.pose.position.z
-    br.sendTransform(t)
+    t.transform.translation.z = 0.0
+    return t
+
+
+rospy.init_node('broadcast_map_odom')
+tf_buf = tf2_ros.Buffer()
+tf_lstn = tf2_ros.TransformListener(tf_buf)
+br = tf2_ros.TransformBroadcaster()
+sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback)
+tf_timeout = rospy.get_param('~tf_timeout', 0.1)
+frame_id = rospy.get_param('~frame_id', 'cf1/odom')
+
+
+def update_time(t):
+    t.header.stamp = rospy.Time.now()
+    return t
 
 
 def main():
-    rospy.spin()
+    rate = rospy.Rate(10)  # Hz
+    while not rospy.is_shutdown():
+        if transforms is not None:
+            for transf in transforms:
+                transf = update_time(transf)
+                br.sendTransform(transf)
+        rate.sleep()
 
 
 if __name__ == '__main__':
-    rospy.init_node('broadcast')
-
-    tf_buf = tf2_ros.Buffer()
-    tf_lstn = tf2_ros.TransformListener(tf_buf)
-    br = tf2_ros.TransformBroadcaster()
-    sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback)
-    tf_timeout = rospy.get_param('~tf_timeout', 0.1)
-    frame_id = rospy.get_param('~frame_id', 'cf1/odom')
     main()
