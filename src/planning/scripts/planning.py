@@ -23,12 +23,16 @@ class PathPlanner:
 
         self.current_goal_odom = None
         self.current_info = None
+        self.pose_map = None
         self.ERROR_TOLERANCE = 0.06
 
     def goal_callback(self, msg):
 
         # rospy.loginfo_throttle(5, 'New position read:\n%s', msg)
         self.current_info = msg
+        # print(self.current_info)
+        # self.current_info.header.stamp = rospy.Time.now()
+        self.convert_pose_to_map()
 
     def goal_is_met(self, goal, current_info):
         rospy.loginfo_throttle(5, 'current_info:\n%s', current_info)
@@ -51,6 +55,14 @@ class PathPlanner:
         msg.pose.orientation.z = 0
         msg.pose.orientation.w = 1
         return msg
+
+    def convert_pose_to_map(self):
+        timeout = rospy.Duration(0.5)
+        # print("hi")
+        while not self.tf_buf.can_transform(self.current_info.header.frame_id, 'map', self.current_info.header.stamp, timeout):
+            rospy.logwarn_throttle(5.0, 'No transform from %s to map' % self.current_info.header.frame_id)
+            return
+        self.pose_map = self.tf_buf.transform(self.current_info, 'map')
 
     def publish_cmd(self, goal):
         goal.header.stamp = rospy.Time.now()
