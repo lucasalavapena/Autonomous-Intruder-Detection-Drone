@@ -30,20 +30,27 @@ def main():
         # print("is localized: ",is_localised)
         if is_localised:
             print("localised")
-            setpoints = [[1.6, 1], [0.4, 0.4]]#, [], [], []]#[[0.5, 0.5], [2.0, 0.3], [2.0, 1.1], [0.3, 1.1], [0.4, 0.4]]
+            setpoints = [[1.6, 1], [0.5, 0.5]]#, [], [], []]#[[0.5, 0.5], [2.0, 0.3], [2.0, 1.1], [0.3, 1.1], [0.4, 0.4]]
             ind = 0
             # print("planner.current_info: ", planner.current_info)
-            if planner.current_info is not None:
+            print("planner.pose_map: ", planner.pose_map)
+
+            print(planner.pose_map is not None)
+            if planner.pose_map is not None:
                 print("RRT stat")
-                x = planner.current_info.pose.position.x
-                y = planner.current_info.pose.position.y
+                # print(planner.pose_map)
+                x = planner.pose_map.pose.position.x
+                y = planner.pose_map.pose.position.y
+
                 path = planning_utils.RRT(x, y, setpoints[ind][0], setpoints[ind][1], world_map)
                 print(path)
                 rospy.loginfo_throttle(5, 'Path:\n%s', path)
                 #
                 # print(setpoints[ind])
                 # print("PATH: ", path)
-                path_msg = [planner.create_msg(x, y, 0.5) for (x, y) in path]
+                # break
+                path_msg = [planner.create_msg(x, y, 0.3) for (x, y) in path]
+                # path_msg.append(planner.create_msg(1.6, 1, 0.1))
                 for pnt in path_msg:
                     planner.publish_cmd(pnt)
                     while not planner.goal_is_met(planner.current_goal_odom, planner.current_info):
@@ -53,6 +60,7 @@ def main():
                         rate.sleep()
 
                     print("GOT TO CHECKPOINT")
+                print()
                 ind += 1
                 if ind == 4:
                     ind = 0
