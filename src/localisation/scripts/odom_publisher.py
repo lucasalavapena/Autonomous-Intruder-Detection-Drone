@@ -17,11 +17,11 @@ def marker_callback(msg):
     transforms = []
     is_localized()
     for m in msg.markers:
-        temp = broadcast_marker(m)
+        temp = broadcast_transform(m)
         transforms.append(temp)
 
 
-def broadcast_marker(m):
+def broadcast_transform(m):
     # Find transform of pose of detected marker in odom
     if not tf_buf.can_transform(frame_id, m.header.frame_id, m.header.stamp, rospy.Duration(tf_timeout)):
         rospy.logwarn_throttle(5.0, '%s: No transform from %s to %s', rospy.get_name(), m.header.frame_id, frame_id)
@@ -49,14 +49,14 @@ def broadcast_marker(m):
     q_marker_inv[3] = -marker.pose.orientation.w
 
     # rotation of static marker in map
-    q_trans = [0] * 4
-    q_trans[0] = t_map.transform.rotation.x
-    q_trans[1] = t_map.transform.rotation.y
-    q_trans[2] = t_map.transform.rotation.z
-    q_trans[3] = t_map.transform.rotation.w
+    q_t = [0] * 4
+    q_t[0] = t_map.transform.rotation.x
+    q_t[1] = t_map.transform.rotation.y
+    q_t[2] = t_map.transform.rotation.z
+    q_t[3] = t_map.transform.rotation.w
 
     # Calculate resulting rotation between map and odom
-    q_r = quaternion_multiply(q_trans, q_marker_inv)
+    q_r = quaternion_multiply(q_t, q_marker_inv)
     roll, pitch, yaw = euler_from_quaternion((q_r[0], q_r[1], q_r[2], q_r[3]))
     t.transform.rotation = Quaternion(q_r[0], q_r[1], q_r[2], q_r[3])
 
@@ -84,15 +84,14 @@ def main():
     rate = rospy.Rate(20)  # Hz
     while not rospy.is_shutdown():
         if transforms is not None:
-            for transf in transforms:
-                if transf is not None:
-                    transf = update_time(transf)
-                    br.sendTransform(transf)
+            for t in transforms:
+                if t is not None:
+                    br.sendTransform(update_time(t))
                     is_localized()
         rate.sleep()
 
 
-rospy.init_node('broadcast_map_odom')
+rospy.init_node('odom_publisher')
 tf_buf = tf2_ros.Buffer()
 tf_lstn = tf2_ros.TransformListener(tf_buf)
 br = tf2_ros.TransformBroadcaster()
