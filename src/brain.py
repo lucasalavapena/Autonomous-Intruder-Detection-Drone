@@ -9,6 +9,7 @@ from std_msgs.msg import Bool
 
 is_localised = None
 
+
 def is_localised_callback(msg):
     global is_localised
     # print(msg.data)
@@ -56,6 +57,7 @@ def main():
                 if ind == 4:
                     ind = 0
                 #print(setpoints[ind])
+
 
 rospy.init_node('brain')
 sub = rospy.Subscriber('localisation/is_localised', Bool, is_localised_callback)

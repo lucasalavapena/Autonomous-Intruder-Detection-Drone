@@ -108,12 +108,12 @@
   <node pkg="localisation" type="base_link_publisher.py" name="base_link_publisher" />
   <node pkg="localisation" type="base_stabilized_publisher.py" name="base_stabilized_publisher" />
   <node pkg="localisation" type="base_footprint_publisher.py" name="base_footprint_publisher" />
-  <node pkg="localisation" type="is_localized_publisher.py" name="is_localized_publisher" />
 
   <!-- Launch Rviz -->
   <node type="rviz" name="rviz" pkg="rviz" args="-d $(find localisation)/config_file.rviz" />
 
   <!-- Localisation nodes -->
   <node pkg="localisation" type="broadcast_map_odom.py" name="broadcast_map_odom" />
+  <!-- <node pkg="localisation" type="is_localized_publisher.py" name="is_localized_publisher" /> -->
 
 </launch>

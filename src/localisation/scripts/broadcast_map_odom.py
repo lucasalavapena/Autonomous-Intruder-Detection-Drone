@@ -7,6 +7,7 @@ import numpy as np
 from tf.transformations import quaternion_multiply, euler_from_quaternion
 from aruco_msgs.msg import MarkerArray
 from geometry_msgs.msg import PoseStamped, TransformStamped, Quaternion
+from std_msgs.msg import Bool
 
 transforms = None
 
@@ -14,6 +15,7 @@ transforms = None
 def marker_callback(msg):
     global transforms
     transforms = []
+    is_localized()
     for m in msg.markers:
         temp = broadcast_marker(m)
         transforms.append(temp)
@@ -22,7 +24,7 @@ def marker_callback(msg):
 def broadcast_marker(m):
     # Find transform of pose of detected marker in odom
     if not tf_buf.can_transform(frame_id, m.header.frame_id, m.header.stamp, rospy.Duration(tf_timeout)):
-        rospy.logwarn_throttle(5.0, 'No transform from %s to %s', m.header.frame_id, frame_id)
+        rospy.logwarn_throttle(5.0, '%s: No transform from %s to %s', rospy.get_name(), m.header.frame_id, frame_id)
         return
     marker = tf_buf.transform(PoseStamped(header=m.header, pose=m.pose.pose), 'cf1/odom')
 
@@ -69,28 +71,35 @@ def broadcast_marker(m):
     return t
 
 
-rospy.init_node('broadcast_map_odom')
-tf_buf = tf2_ros.Buffer()
-tf_lstn = tf2_ros.TransformListener(tf_buf)
-br = tf2_ros.TransformBroadcaster()
-sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback)
-tf_timeout = rospy.get_param('~tf_timeout', 0.1)
-frame_id = rospy.get_param('~frame_id', 'cf1/odom')
-
-
 def update_time(t):
     t.header.stamp = rospy.Time.now()
     return t
 
 
+def is_localized():
+    pub.publish(Bool(data=True))
+
+
 def main():
-    rate = rospy.Rate(10)  # Hz
+    rate = rospy.Rate(20)  # Hz
     while not rospy.is_shutdown():
         if transforms is not None:
             for transf in transforms:
-                transf = update_time(transf)
-                br.sendTransform(transf)
+                if transf is not None:
+                    transf = update_time(transf)
+                    br.sendTransform(transf)
+                    is_localized()
         rate.sleep()
+
+
+rospy.init_node('broadcast_map_odom')
+tf_buf = tf2_ros.Buffer()
+tf_lstn = tf2_ros.TransformListener(tf_buf)
+br = tf2_ros.TransformBroadcaster()
+sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback)
+pub = rospy.Publisher('localisation/is_localised', Bool, queue_size=10)
+tf_timeout = rospy.get_param('~tf_timeout', 0.1)
+frame_id = rospy.get_param('~frame_id', 'cf1/odom')
 
 
 if __name__ == '__main__':

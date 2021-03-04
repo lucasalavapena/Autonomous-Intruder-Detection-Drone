@@ -8,12 +8,14 @@ from std_msgs.msg import Bool
 
 def is_localised():
     msg = Bool()
+    time = rospy.Time.now()
+    rospy.sleep(1)
     try:
-        if tf_buf.can_transform(frame_id, child_frame_id, rospy.Time.now(), rospy.Duration(tf_timeout)):
+        if tf_buf.can_transform(frame_id, child_frame_id, time, rospy.Duration(tf_timeout)):
             msg.data = True
         else:
             msg.data = False
-            rospy.logwarn_throttle(5.0, 'No transform from %s to %s', child_frame_id, frame_id)
+            rospy.logwarn_throttle(5.0, '%s: No transform from %s to %s', rospy.get_name(), child_frame_id, frame_id)
     except rospy.exceptions.ROSTimeMovedBackwardsException:
         pass
     return msg
