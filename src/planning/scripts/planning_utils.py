@@ -189,7 +189,7 @@ class Map:
         checks if a
         """
         # check if it is within the airspace
-        if x > self.airspace[3] or x < self.airspace[0]   or y > self.airspace[4] or y < self.airspace[1]:
+        if x + DRONE_MAX_SIDE > self.airspace[3] or x - DRONE_MAX_SIDE < self.airspace[0]   or y + DRONE_MAX_SIDE > self.airspace[4] or y - DRONE_MAX_SIDE < self.airspace[1]:
             return False
         # check against obstacles
         for obs in self.obstacles:

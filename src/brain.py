@@ -24,45 +24,47 @@ def main():
     my_path = os.path.abspath(os.path.dirname(__file__))
     map_path = os.path.join(my_path, "course_packages/dd2419_resources/worlds_json", "lucas_room_screen.world.json")
     world_map = planning_utils.Map(map_path)
+    ind = 0
     while not rospy.is_shutdown():
         # print(is_localised)
         rate.sleep()
         # print("is localized: ",is_localised)
         if is_localised:
-            print("localised")
             setpoints = [[1.6, 1], [0.5, 0.5]]#, [], [], []]#[[0.5, 0.5], [2.0, 0.3], [2.0, 1.1], [0.3, 1.1], [0.4, 0.4]]
-            ind = 0
-            # print("planner.current_info: ", planner.current_info)
-            print("planner.pose_map: ", planner.pose_map)
 
-            print(planner.pose_map is not None)
+            # print("planner.current_info: ", planner.current_info)
+
             if planner.pose_map is not None:
-                print("RRT stat")
-                # print(planner.pose_map)
+                print("RRT start")
                 x = planner.pose_map.pose.position.x
                 y = planner.pose_map.pose.position.y
 
                 path = planning_utils.RRT(x, y, setpoints[ind][0], setpoints[ind][1], world_map)
-                print(path)
                 rospy.loginfo_throttle(5, 'Path:\n%s', path)
                 #
                 # print(setpoints[ind])
                 # print("PATH: ", path)
                 # break
-                path_msg = [planner.create_msg(x, y, 0.3) for (x, y) in path]
+                path_msg = [planner.create_msg(a, b, 0.3) for (a, b) in path]
                 # path_msg.append(planner.create_msg(1.6, 1, 0.1))
                 for pnt in path_msg:
                     planner.publish_cmd(pnt)
+                    rospy.loginfo_throttle(5, 'map loc:\n%s %s', planner.pose_map.pose.position.x, planner.pose_map.pose.position.y)
+
                     while not planner.goal_is_met(planner.current_goal_odom, planner.current_info):
                         # print("Current Position: {},{}".format(planner.current_info.pose.position.x, planner.current_info.pose.position.y))
                         # print("Goal Position: {},{}".format(pnt.pose.position.x, pnt.pose.position.y))
                         planner.publish_cmd(pnt)
                         rate.sleep()
 
-                    print("GOT TO CHECKPOINT")
-                print()
+                    print("GOT TO CHECKPOINT", " goal: {} {} current:{} {}".format(planner.current_goal_odom.x,
+                                                                             planner.current_goal_odom.y,
+                                                                             planner.current_info.pose.position.x,
+                                                                            planner.current_info.pose.position.y) )
+                print("Finished point {}".format(ind))
                 ind += 1
-                if ind == 4:
+                print("ind {}".format(ind) )
+                if ind == 2:
                     ind = 0
                 #print(setpoints[ind])
 
