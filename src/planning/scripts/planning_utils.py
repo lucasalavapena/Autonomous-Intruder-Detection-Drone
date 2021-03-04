@@ -3,7 +3,7 @@ from __future__ import division
 import json
 import random
 import math
-
+import os.path
 # for test
 # random.seed(19)
 DRONE_MAX_SIDE = 0.15
@@ -33,7 +33,6 @@ def RRT(curr_x, curr_y, goal_x, goal_y, Map):
         if new_node != -1:
             Tree.append(new_node)
 
-
         if distance(Tree[-1], goal_node) <= 0.2:
             break
         i += 1
@@ -59,7 +58,7 @@ def generate_path(node):
 
     return path[1:]
 
-def grow(rand_node, nearest_node, Map, steps = 50):
+def grow(rand_node, nearest_node, Map, steps = 1000):
     """
     check if I can grow the free is so returns the node to add to the tree
     :param rand_node:
@@ -127,6 +126,8 @@ class Node:
         self.x = x
         self.y = y
         self.parent = None
+    def __str__(self):
+        return "(x: {}, y:{})".format(self.x, self.y)
 
 
 
@@ -137,6 +138,8 @@ class Map:
         self.airspace = None
         self.build_map(map_path, expansion_factor)
 
+    def __str__(self):
+        return "obstacles: {}\n airspace: {}".format(self.obstacles, self.airspace)
 
     def build_map(self, map_path, expansion_factor):
         """
@@ -160,8 +163,8 @@ class Map:
                 x_start = min(x_start, x_end)
                 x_end = max(x_start, x_end)
 
-                y_start = min(x_start, y_end)
-                y_end = max(x_start, y_end)
+                y_start = min(y_start, y_end)
+                y_end = max(y_start, y_end)
 
                 # self.obstacles.append(((1 - expansion_factor) * (x_start - DRONE_MAX_SIDE),
                 #                        (1 - expansion_factor) * (y_start - DRONE_MAX_SIDE),
@@ -197,9 +200,14 @@ class Map:
 
 
 def test():
-    world_map = Map("course_packages/dd2419_resources/worlds_json/planning_test_map.json")
+    # world_map = Map("course_packages/dd2419_resources/worlds_json/planning_test_map.json")
+    my_path = os.path.abspath(os.path.dirname(__file__))
+    file = "lucas_room_screen.world.json"
+    map_path = os.path.join(my_path, "../..", "course_packages/dd2419_resources/worlds_json", file)
+    world_map = Map(map_path)
+    print(world_map)
     # world_map = Map("src/course_packages/dd2419_resources/worlds_json/tutorial_1.world.json")
-    result = RRT(0, 0, 1, 1.9, world_map)
+    result = RRT(0.5, 0.8, 1.6, 1, world_map)
     print(result)
 if __name__ == "__main__":
     test()

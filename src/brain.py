@@ -21,30 +21,36 @@ def main():
     rate = rospy.Rate(20)  # Hz
     planner = planning.PathPlanner()
     my_path = os.path.abspath(os.path.dirname(__file__))
-    map_path = os.path.join(my_path, "course_packages/dd2419_resources/worlds_json", "malvinas.world.json")
+    map_path = os.path.join(my_path, "course_packages/dd2419_resources/worlds_json", "lucas_room_screen.world.json")
     world_map = planning_utils.Map(map_path)
     while not rospy.is_shutdown():
         # print(is_localised)
         rate.sleep()
         # print("is localized: ",is_localised)
         if is_localised:
-            setpoints = [[1.4, 1.7], [1.4, 0.3]]#, [], [], []]#[[0.5, 0.5], [2.0, 0.3], [2.0, 1.1], [0.3, 1.1], [0.4, 0.4]]
+            print("localised")
+            setpoints = [[1.6, 1], [0.4, 0.4]]#, [], [], []]#[[0.5, 0.5], [2.0, 0.3], [2.0, 1.1], [0.3, 1.1], [0.4, 0.4]]
             ind = 0
             # print("planner.current_info: ", planner.current_info)
             if planner.current_info is not None:
+                print("RRT stat")
                 x = planner.current_info.pose.position.x
                 y = planner.current_info.pose.position.y
                 path = planning_utils.RRT(x, y, setpoints[ind][0], setpoints[ind][1], world_map)
-                print(setpoints[ind])
-                print("PATH: ", path)
+                print(path)
+                rospy.loginfo_throttle(5, 'Path:\n%s', path)
+                #
+                # print(setpoints[ind])
+                # print("PATH: ", path)
                 path_msg = [planner.create_msg(x, y, 0.5) for (x, y) in path]
-
                 for pnt in path_msg:
-                    while not planner.goal_is_met(pnt, planner.current_info):
+                    planner.publish_cmd(pnt)
+                    while not planner.goal_is_met(planner.current_goal_odom, planner.current_info):
                         # print("Current Position: {},{}".format(planner.current_info.pose.position.x, planner.current_info.pose.position.y))
                         # print("Goal Position: {},{}".format(pnt.pose.position.x, pnt.pose.position.y))
                         planner.publish_cmd(pnt)
                         rate.sleep()
+
                     print("GOT TO CHECKPOINT")
                 ind += 1
                 if ind == 4:

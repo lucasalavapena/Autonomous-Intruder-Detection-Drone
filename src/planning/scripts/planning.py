@@ -31,11 +31,11 @@ class PathPlanner:
         self.current_info = msg
 
     def goal_is_met(self, goal, current_info):
-        print("current_info: ",current_info)
-        print("goal: ", goal)
-        if (goal.pose.position.x + self.ERROR_TOLERANCE > current_info.pose.position.x > goal.pose.position.x - self.ERROR_TOLERANCE and
-                goal.pose.position.y + self.ERROR_TOLERANCE > current_info.pose.position.y > goal.pose.position.y - self.ERROR_TOLERANCE and
-                goal.pose.position.z + self.ERROR_TOLERANCE > current_info.pose.position.z > goal.pose.position.z - self.ERROR_TOLERANCE):
+        rospy.loginfo_throttle(5, 'current_info:\n%s', current_info)
+        rospy.loginfo_throttle(5, 'goal:\n%s', goal)
+        if (goal.x + self.ERROR_TOLERANCE > current_info.pose.position.x > goal.x - self.ERROR_TOLERANCE and
+                goal.y + self.ERROR_TOLERANCE > current_info.pose.position.y > goal.y - self.ERROR_TOLERANCE and
+                goal.z + self.ERROR_TOLERANCE > current_info.pose.position.z > goal.z - self.ERROR_TOLERANCE):
             return True
         else:
             return False
@@ -85,12 +85,13 @@ class PathPlanner:
 def main(file="planning_test_map.json"):
     rospy.init_node('planning')
     my_path = os.path.abspath(os.path.dirname(__file__))
+    file = "lucas_room_screen.json"
     map_path = os.path.join(my_path, "../..", "course_packages/dd2419_resources/worlds_json", file)
     # print(map_path)
     planner = PathPlanner()
     rospy.sleep(2)
     world_map = Map(map_path)
-    path = RRT(0, 0, 1, 1.8, world_map)
+    path = RRT(0, 0, 1.4, 0.8, world_map)
     print("path", path)
     goals = [planner.create_msg(x, y, 0.5) for (x, y) in path]
     rate = rospy.Rate(10)  # Hz
