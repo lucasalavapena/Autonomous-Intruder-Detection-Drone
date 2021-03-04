@@ -4,7 +4,7 @@ import rospy
 import tf2_ros
 import tf2_geometry_msgs
 import numpy as np
-from tf.transformations import quaternion_multiply, euler_from_quaternion
+from tf.transformations import quaternion_multiply, euler_from_quaternion, quaternion_from_euler
 from aruco_msgs.msg import MarkerArray
 from geometry_msgs.msg import PoseStamped, TransformStamped, Quaternion
 from std_msgs.msg import Bool
@@ -58,7 +58,10 @@ def broadcast_transform(m):
     # Calculate resulting rotation between map and odom
     q_r = quaternion_multiply(q_t, q_marker_inv)
     roll, pitch, yaw = euler_from_quaternion((q_r[0], q_r[1], q_r[2], q_r[3]))
-    t.transform.rotation = Quaternion(q_r[0], q_r[1], q_r[2], q_r[3])
+    (t.transform.rotation.x,
+     t.transform.rotation.y,
+     t.transform.rotation.z,
+     t.transform.rotation.w) = quaternion_from_euler(0, 0, yaw)
 
     #  Calculate the translation vector
     t1 = t_map.transform.translation.x - np.cos(yaw)*marker.pose.position.x + np.sin(yaw)*marker.pose.position.y
