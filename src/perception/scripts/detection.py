@@ -11,9 +11,10 @@ import cv2
 import argparse
 import numpy as np
 from sensor_msgs.msg import Image, CameraInfo
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, PoseArray
 from cv_bridge import CvBridge, CvBridgeError
 from tf.transformations import quaternion_from_euler
+import torchvision.transforms.functional as TF
 
 import torch
 import torch.nn as nn
@@ -34,9 +35,10 @@ MODEL_PATH = os.path.join(
 
 class image_converter:
 
-  def __init__(self, device):
+  def __init__(self, device="cpu"):
         self.image_pub = rospy.Publisher("/myresult", Image, queue_size=2)
-        self.sign_pose_pub  = rospy.Publisher('/detected_sign_pose', PoseStamped, queue_size=10)
+        # self.sign_pose_pub  = rospy.Publisher('/detected_sign_pose', PoseArray, queue_size=10)
+        self.sign_pose_pub = rospy.Publisher('/detected_sign_pose', PoseStamped, queue_size=10)
 
 
         self.bridge = CvBridge()
@@ -87,52 +89,68 @@ class image_converter:
     # Convert the image from OpenCV to ROS format
     # torch.set_num_threads(12)
     # print("NUMBER OF THREADS:",torch.get_num_threads())
+    entire_start = time.time()
 
     try:
         cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
     except CvBridgeError as e:
         print(e)
+    # torch_im = TF.to_tensor(cv_image) # cv_image.transforms.ToTensor()
     torch_im = self.trans(cv_image)
+
     if self.device_type == "cuda":
         torch_im = torch.unsqueeze(torch_im, 0).to(self.device)
     else:
         torch_im = torch.unsqueeze(torch_im, 0)
 
     self.detector.eval()
+    # end = time.time()
+    # print("callback start TIME: {}".format(end - start))
+    torch.cuda.synchronize()
     with torch.no_grad():
-        start = time.time()
-        out = self.detector(torch_im)
-        end = time.time()
-        print("MODEL TIME: {}".format(end - start))
-        bb = self.detector.decode_output(out, 0.5)
-
-        if bb:
-            height = bb[0][0]["height"].item()*-1
-            width = bb[0][0]["width"].item() # shitfix
+        # model_start = time.time()
+        out = self.detector(torch_im)#.cpu()
+        # model_end = time.time()
+        # print("MODEL TIME: {}".format(model_end - model_start))
+        # print(out.shape)
+        # print(out.grad.shape)
+        # out = out.cpu()
+        # out = self.detector(torch_im[None, ...]).cpu()
+        # print("MODEL+copyinh into cpu TIME: {}".format(time.time() - model_end))
+        # decoder_start = time.time()
+        bbs = self.detector.single_decode_output(out, 0.7)
+        # print("decoder TIME: {}".format(time.time() - decoder_start))
+        # drawing_start = time.time()
+        if bbs:
+            # sign_poses = []
+            # bbs = bbs[0]
+            # for bb in bbs:
+            height = bbs[0][0]["height"].item()*-1
+            width = bbs[0][0]["width"].item() # shitfix
             # bb[0][0]["width"] = torch.tensor(bb[0][0]["width"].item()*-1)
             # bb[0][0]["height"] = torch.tensor(bb[0][0]["height"].item()*-1) # shitfix
-            top_left = (int(round(bb[0][0]['x'].item())), round(bb[0][0]['y'].item()))
+            top_left = (int(round(bbs[0][0]['x'].item())), round(bbs[0][0]['y'].item()))
             top_right = (top_left[0] + round(width), top_left[1])
             bottom_left = (top_left[0], top_left[1] - round(height))
             bottom_right = (top_left[0] + round(width),
                             top_left[1] - round(height))
             center = (int(round(top_left[0]+width/2)), int(round(top_left[1]-height/2)))
-            category = utils.get_category_dict("src/perception/scripts/dd2419_detector_baseline_OG/dd2419_coco/annotations/training.json")[bb[0][0]['category']]['name']
+            category = utils.get_category_dict("src/perception/scripts/dd2419_detector_baseline_OG/dd2419_coco/annotations/training.json")[bbs[0][0]['category']]['name']
 
             top_left = tuple((int(i) if i > 0 else 0 for i in top_left))
             top_right = tuple((int(i) if i > 0 else 0 for i in top_right))
             bottom_left = tuple((int(i) if i > 0 else 0 for i in bottom_left))
             bottom_right = tuple((int(i) if i > 0 else 0 for i in bottom_right))
 
-            print("\n\n{TL}----------{TR}\n{BL}----------{BR}\n\n".format(TL=top_left, TR=top_right, BL=bottom_left, BR=bottom_right))
+            # print("\n\n{TL}----------{TR}\n{BL}----------{BR}\n\n".format(TL=top_left, TR=top_right, BL=bottom_left, BR=bottom_right))
 
             cv2.line(cv_image, top_left, top_right, (0, 0, 255), 2) # red
             cv2.line(cv_image, bottom_left, top_left, (0, 0, 255), 2) # green
             cv2.line(cv_image, bottom_right, bottom_left, (0, 0, 255), 2) # blue
             cv2.line(cv_image, bottom_right, top_right, (0, 0, 255), 2) # yellow
-            cv2.putText(cv_image, text=category, org=(bottom_left[0], bottom_left[1] + 20), fontFace=cv2.FONT_HERSHEY_SIMPLEX,  
+            cv2.putText(cv_image, text=category, org=(bottom_left[0], bottom_left[1] + 20), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                    fontScale=0.5, color=(0,0,0), thickness=3, lineType=cv2.LINE_AA)
-            cv2.putText(cv_image, text=category, org=(bottom_left[0], bottom_left[1] + 20), fontFace=cv2.FONT_HERSHEY_SIMPLEX,  
+            cv2.putText(cv_image, text=category, org=(bottom_left[0], bottom_left[1] + 20), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
             fontScale=0.5, color=(255,255,255), thickness=1, lineType=cv2.LINE_AA)
 
             if self.camera_params:
@@ -180,24 +198,30 @@ class image_converter:
                 sign_pose.pose.orientation.w,) = quaternion_from_euler(math.radians(0),
                                                                 math.radians(0),
                                                                 math.radians(0))
-
+                # sign_poses.append(sign_pose)
                 self.sign_pose_pub.publish(sign_pose)
 
+        # drawing_end = time.time()
+        # print("drawing TIME: {}".format(drawing_end - drawing_start))
 
+    img_publish_start = time.time()
     try:
         self.image_pub.publish(self.bridge.cv2_to_imgmsg(cv_image, "bgr8"))
+        # self.sign_pose_pub.publish(sign_poses)
     except CvBridgeError as e:
         print(e)
 
     DEBUG = None
-
+    # img_publish_end = time.time()
+    # print("image publish TIME: {}".format(img_publish_end - img_publish_start))
+    # entire_end = time.time()
+    print("Entire TIME: {}".format(time.time() - entire_start))
 
 def main(args):
   rospy.init_node('detection', anonymous=True)
 
 
   ic = image_converter(args)
-
   print("running...")
   try:
     rospy.spin()
