@@ -92,7 +92,7 @@ def sift_feasture_detection(query_img_path, train_img_path, crop):
 
 def test_feature():
     my_path = os.path.abspath(os.path.dirname(__file__))
-    query_img_path = os.path.join(my_path, "dd2419_traffic_sign_pdfs", "dangerous_right_page-0001.jpg")
+    query_img_path = os.path.join(my_path, "dd2419_traffic_sign_pdfs", "dangerous_right.jpg")
     train_img_path = os.path.join(my_path, "dd2419_detector_baseline_OG/performance_test/test_images",
                                   "0000070.jpg")
     model_run = run_model_singleimage(train_img_path)[0][0]
