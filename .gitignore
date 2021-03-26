@@ -22,6 +22,7 @@ src/course_packages/dd2419_resources/*
 
 *.bag
 *.pyc
+*.diff
 
 # ROS bag files to include
 !test.bag
