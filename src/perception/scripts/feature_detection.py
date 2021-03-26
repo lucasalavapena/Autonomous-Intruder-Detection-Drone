@@ -2,6 +2,7 @@ import os.path
 import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
+import time
 from dd2419_detector_baseline_OG.utils import run_model_singleimage
 
 def rotate_image(image, angle):
@@ -15,8 +16,8 @@ def image_preprocessing(query_img_path, train_img_path, crop):
     img2 = cv.imread(train_img_path, cv.IMREAD_GRAYSCALE)  # trainImage
     # img1 = img1[]
     img2 = rotate_image(img2, 1)
-    plt.imshow(img1), plt.show()
-    plt.imshow(img2), plt.show()
+    # plt.imshow(img1), plt.show()
+    # plt.imshow(img2), plt.show()
 
     # height = crop["height"].item() * -1
     # width = crop["width"].item()  # shitfix
@@ -30,6 +31,7 @@ def image_preprocessing(query_img_path, train_img_path, crop):
 
 def FLANN(query_img_path, train_img_path, crop):
     img1, img2 = image_preprocessing(query_img_path, train_img_path, crop)
+    start_time = time.time()
 
     # Initiate SIFT detector
     sift = cv.xfeatures2d.SIFT_create()
@@ -54,6 +56,8 @@ def FLANN(query_img_path, train_img_path, crop):
     for i, (m, n) in enumerate(matches):
         if m.distance < 0.7 * n.distance:
             matchesMask[i] = [1, 0]
+    print("took {}s to run".format(time.time()-start_time))
+
     draw_params = dict(matchColor=(0, 255, 0),
                        singlePointColor=(255, 0, 0),
                        matchesMask=matchesMask,
@@ -63,6 +67,7 @@ def FLANN(query_img_path, train_img_path, crop):
 
 def sift_feasture_detection(query_img_path, train_img_path, crop):
     img1, img2 = image_preprocessing(query_img_path, train_img_path, crop)
+    start_time = time.time()
 
     # Initiate SIFT detector
     sift = cv.xfeatures2d.SIFT_create()
@@ -80,6 +85,7 @@ def sift_feasture_detection(query_img_path, train_img_path, crop):
         if m.distance < 0.9 * n.distance:
             good.append([m])
     # cv.drawMatchesKnn expects list of lists as matches.
+    print("took {}s to run".format(time.time()-start_time))
     img3 = cv.drawMatchesKnn(img1, kp1, img2, kp2, good, None, flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
     plt.imshow(img3), plt.show()
 
@@ -93,7 +99,9 @@ def test_feature():
     print(model_run)
 
     sift_feasture_detection(query_img_path, query_img_path, model_run)
-    # FLANN(query_img_path, train_img_path, model_run)
+    sift_feasture_detection(query_img_path, train_img_path, model_run)
+    FLANN(query_img_path, train_img_path, model_run)
+    FLANN(train_img_path, train_img_path, model_run)
 
 if __name__ == "__main__":
     test_feature()
