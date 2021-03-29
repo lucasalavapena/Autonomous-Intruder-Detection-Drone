@@ -161,6 +161,9 @@ def get_orientation(camera_matrix):
     # TODO: replace camera values with a camera
     # D = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
 
+    # axis = np.float32([[3, 0, 0], [0, 3, 0], [0, 0, -3]]).reshape(-1, 3)
+
+
     camera_matrix = K
     dist_coeffs = D
 
@@ -172,8 +175,8 @@ def get_orientation(camera_matrix):
     image_points, jacobian = cv.projectPoints(object_points, rvec, tvec, camera_matrix, dist_coeffs)
 
 
-    # result_img = draw(img2, image_center, image_points)
-    result_img = draw_axis(img2, R, tvec, K)
+    result_img = draw(img2, image_center, image_points)
+    # result_img = draw_axis(img2, R, tvec, K)
     cv.imshow('result_img', result_img)
     plt.imshow(result_img), plt.show()
 if __name__ == "__main__":
