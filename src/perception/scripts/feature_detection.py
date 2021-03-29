@@ -89,7 +89,7 @@ def sift_feasture_detection(query_img_path, train_img_path, crop):
     # Apply ratio test
     good = []
     for m, n in matches:
-        if m.distance < 0.9 * n.distance:
+        if m.distance < 0.75 * n.distance:
             good.append([m])
     # cv.drawMatchesKnn expects list of lists as matches.
     print("took {}s to run".format(time.time()-start_time))
@@ -141,12 +141,21 @@ def test_feature():
     # FLANN(train_img_path, train_img_path, model_run)
 
 def get_orientation(camera_matrix):
+    # def get_unique(points, delta=0.1):
+    #     results = []
+    #     for row in points:
+    #         for stored_result in results:
+    #             if stored_result[0] * (1-delta) <= row[0] <= stored_result[0] * (1+delta) and stored_result[1] * (1-delta) <= row[1] <= stored_result[1] * (1+delta):# and stored_result[2] * (1-delta) <= row[2] <= stored_result[2] * (1+delta):
+    #                 break
+    #         results.append(row)
+    #     return np.array(results)
+
     my_path = os.path.abspath(os.path.dirname(__file__))
     query_img_path = os.path.join(my_path, "dd2419_traffic_sign_pdfs", "dangerous_right.jpg")
     train_img_path = os.path.join(my_path, "dd2419_detector_baseline_OG/performance_test/test_images",
                                   "0000070.jpg")
-    train_img_path = query_img_path
-    model_run = None #run_model_singleimage(train_img_path)[0][0]
+    # train_img_path = query_img_path
+    model_run = run_model_singleimage(train_img_path)[0][0]
     print(model_run)
 
     # sift_feasture_detection(query_img_path, query_img_path, model_run)
@@ -161,20 +170,24 @@ def get_orientation(camera_matrix):
     # TODO: replace camera values with a camera
     # D = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
 
-    # axis = np.float32([[3, 0, 0], [0, 3, 0], [0, 0, -3]]).reshape(-1, 3)
-
+    axis = np.float32([[3, 0, 0], [0, 3, 0], [0, 0, -3]]).reshape(-1, 3)
 
     camera_matrix = K
     dist_coeffs = D
 
     object_points, image_points = get_object_point(kp1, kp2, good)
+    # object_points = get_unique(object_points)
+    # image_points = get_unique(image_points)
+
+
+
 
     retval, rvec, tvec, inliers = cv.solvePnPRansac(object_points,
                                                     image_points, camera_matrix, dist_coeffs)
 
-    image_points, jacobian = cv.projectPoints(object_points, rvec, tvec, camera_matrix, dist_coeffs)
-
-
+    image_points, jacobian = cv.projectPoints(axis, rvec, tvec, camera_matrix, dist_coeffs)
+    image_points = np.array([[ 33.95569611, 180.4183197 ],  [112.67071533, 144.4498291 ], [131.08009338, 114.48181152]])
+    #
     result_img = draw(img2, image_center, image_points)
     # result_img = draw_axis(img2, R, tvec, K)
     cv.imshow('result_img', result_img)
