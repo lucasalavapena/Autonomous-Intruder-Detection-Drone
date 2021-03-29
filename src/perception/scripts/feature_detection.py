@@ -123,6 +123,7 @@ def get_object_point(kp1, kp2, good):
     image_points = [kp2[item[0].trainIdx].pt for item in good]
 
     object_points = [item+(0.0,) for item in canonical2D_kp]
+    # object_points = [(0.0, item[0], item[1]) for item in canonical2D_kp]
 
     return np.array(object_points), np.array(image_points)
 
@@ -157,6 +158,8 @@ def get_orientation(camera_matrix):
     K = np.array([231.250001, 0.0, 320.519378, 0.0, 231.065552, 240.631482, 0.0, 0.0, 1.0]).reshape(3, 3)
     P = np.array([231.25, 0.0, 322.360322, 0.0, 0.0, 231.06, 240.631, 0.0, 0.0, 0.0, 1.0, 0.0]).reshape(3, 4)
     R = np.array([1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]).reshape(3, 3)
+    # TODO: replace camera values with a camera
+    # D = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
 
     camera_matrix = K
     dist_coeffs = D
@@ -169,8 +172,8 @@ def get_orientation(camera_matrix):
     image_points, jacobian = cv.projectPoints(object_points, rvec, tvec, camera_matrix, dist_coeffs)
 
 
-    result_img = draw(img2, image_center, image_points)
-    # result_img = draw_axis(img2, R, tvec, K)
+    # result_img = draw(img2, image_center, image_points)
+    result_img = draw_axis(img2, R, tvec, K)
     cv.imshow('result_img', result_img)
     plt.imshow(result_img), plt.show()
 if __name__ == "__main__":
