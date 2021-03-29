@@ -15,22 +15,29 @@ def image_preprocessing(query_img_path, train_img_path, crop):
     img1 = cv.imread(query_img_path, cv.IMREAD_GRAYSCALE)  # queryImage
     img2 = cv.imread(train_img_path, cv.IMREAD_GRAYSCALE)  # trainImage
     # img1 = img1[]
-    img2 = rotate_image(img2, 1)
+    # img2 = rotate_image(img2, 1)
     # plt.imshow(img1), plt.show()
     # plt.imshow(img2), plt.show()
 
-    height = crop["height"].item() * -1
-    width = crop["width"].item()  # shitfix
-    top_x = int(round(crop['x'].item()))
-    top_y = int(round(crop['y'].item()))
-    bottom_x = int(top_x + round(width))
-    bottom_y = int(top_y - round(height))
+    if crop:
+        height = crop["height"].item() * -1
+        width = crop["width"].item()  # shitfix
+        top_x = int(round(crop['x'].item()))
+        top_y = int(round(crop['y'].item()))
+        bottom_x = int(top_x + round(width))
+        bottom_y = int(top_y - round(height))
+        img2 = img2[top_y: bottom_y, top_x: bottom_x]
 
-    img2 = img2[top_y: bottom_y, top_x: bottom_x]
-    return img1, img2
+    else:
+        top_x = 0
+        top_y = 0
+        bottom_x = img1.shape[0]
+        bottom_y = img1.shape[1]
+
+    return img1, img2, ((bottom_x - top_x)/2, (bottom_y - top_y)/2)
 
 def FLANN(query_img_path, train_img_path, crop):
-    img1, img2 = image_preprocessing(query_img_path, train_img_path, crop)
+    img1, img2, center = image_preprocessing(query_img_path, train_img_path, crop)
     start_time = time.time()
 
     # Initiate SIFT detector
@@ -66,7 +73,7 @@ def FLANN(query_img_path, train_img_path, crop):
     plt.imshow(img3, ), plt.show()
 
 def sift_feasture_detection(query_img_path, train_img_path, crop):
-    img1, img2 = image_preprocessing(query_img_path, train_img_path, crop)
+    img1, img2, center = image_preprocessing(query_img_path, train_img_path, crop)
     start_time = time.time()
 
     # Initiate SIFT detector
@@ -88,7 +95,7 @@ def sift_feasture_detection(query_img_path, train_img_path, crop):
     print("took {}s to run".format(time.time()-start_time))
     img3 = cv.drawMatchesKnn(img1, kp1, img2, kp2, good, None, flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
     plt.imshow(img3), plt.show()
-    return kp1, kp2, good, img2
+    return kp1, kp2, good, img2, center
 
 
 def draw(img, center, imgpts):
@@ -98,14 +105,26 @@ def draw(img, center, imgpts):
     img = cv.line(img, center, tuple(pts[2].ravel()), (0, 0, 255), 5)
     return img
 
-
+def draw_axis(img, R, t, K):
+    # unit is mm
+    rotV, _ = cv.Rodrigues(R)
+    points = np.float32(
+        [[55, 0, 0], [0, 55, 0], [0, 0, 55], [0, 0, 0]]).reshape(-1, 3)
+    axisPoints, _ = cv.projectPoints(points, rotV, t, K, (0, 0, 0, 0))
+    img = cv.line(img, tuple(axisPoints[3].ravel()), tuple(
+        axisPoints[0].ravel()), (255, 0, 0), 3)
+    img = cv.line(img, tuple(axisPoints[3].ravel()), tuple(
+        axisPoints[1].ravel()), (0, 255, 0), 3)
+    img = cv.line(img, tuple(axisPoints[3].ravel()), tuple(
+        axisPoints[2].ravel()), (0, 0, 255), 3)
+    return img
 def get_object_point(kp1, kp2, good):
     canonical2D_kp = [kp1[item[0].queryIdx].pt for item in good]
     image_points = [kp2[item[0].trainIdx].pt for item in good]
 
     object_points = [item+(0.0,) for item in canonical2D_kp]
 
-    return object_points, image_points
+    return np.array(object_points), np.array(image_points)
 
 def test_feature():
     my_path = os.path.abspath(os.path.dirname(__file__))
@@ -125,11 +144,12 @@ def get_orientation(camera_matrix):
     query_img_path = os.path.join(my_path, "dd2419_traffic_sign_pdfs", "dangerous_right.jpg")
     train_img_path = os.path.join(my_path, "dd2419_detector_baseline_OG/performance_test/test_images",
                                   "0000070.jpg")
-    model_run = run_model_singleimage(train_img_path)[0][0]
+    train_img_path = query_img_path
+    model_run = None #run_model_singleimage(train_img_path)[0][0]
     print(model_run)
 
     # sift_feasture_detection(query_img_path, query_img_path, model_run)
-    kp1, kp2, good, img2 = sift_feasture_detection(query_img_path, train_img_path, model_run)
+    kp1, kp2, good, img2, image_center = sift_feasture_detection(query_img_path, train_img_path, model_run)
     result_img = img2
     # Harded for now but will be read form camera matrix
     # I got these values from camera info
@@ -146,11 +166,13 @@ def get_orientation(camera_matrix):
     retval, rvec, tvec, inliers = cv.solvePnPRansac(object_points,
                                                     image_points, camera_matrix, dist_coeffs)
 
-    # image_points, jacobian = cv.projectPoints(object_points, rvec, tvec, camera_matrix, dist_coeffs)
-    #
-    # result_img = draw(img2, corners2, image_points)
-    # cv.imshow('result_img', result_img)
+    image_points, jacobian = cv.projectPoints(object_points, rvec, tvec, camera_matrix, dist_coeffs)
 
+
+    result_img = draw(img2, image_center, image_points)
+    # result_img = draw_axis(img2, R, tvec, K)
+    cv.imshow('result_img', result_img)
+    plt.imshow(result_img), plt.show()
 if __name__ == "__main__":
     # test_feature()
     get_orientation(None)
