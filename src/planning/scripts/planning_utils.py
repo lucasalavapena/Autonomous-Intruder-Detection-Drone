@@ -3,7 +3,12 @@ from __future__ import division
 import json
 import random
 import math
+import numpy as np
 import os.path
+from itertools import product
+
+
+
 # for test
 # random.seed(19)
 DRONE_MAX_SIDE = 0.15
@@ -133,15 +138,17 @@ class Node:
 
 # The class representing the room and its limits
 class Map:
-    def __init__(self, map_path, expansion_factor=0.2):
+    def __init__(self, map_path, expansion_factor=0.1):
         self.obstacles = []
         self.airspace = None
+        self.mesh_grid = None
+        self.occupancy_grid = None
         self.build_map(map_path, expansion_factor)
 
     def __str__(self):
         return "obstacles: {}\n airspace: {}".format(self.obstacles, self.airspace)
 
-    def build_map(self, map_path, expansion_factor):
+    def build_map(self, map_path, expansion_factor, discretization=0.05):
         """
 
         :param map_path:
@@ -166,12 +173,6 @@ class Map:
                 y_start = min(y_start, y_end)
                 y_end = max(y_start, y_end)
 
-                # self.obstacles.append(((1 - expansion_factor) * (x_start - DRONE_MAX_SIDE),
-                #                        (1 - expansion_factor) * (y_start - DRONE_MAX_SIDE),
-                #                        z_start,
-                #                        (1 + expansion_factor) * (x_end + DRONE_MAX_SIDE),
-                #                        (1 + expansion_factor) * (y_end + DRONE_MAX_SIDE),
-                #                        z_end))
                 self.obstacles.append(( (x_start - DRONE_MAX_SIDE) - expansion_factor,
                                         (y_start - DRONE_MAX_SIDE) - expansion_factor,
                                        z_start,
@@ -183,6 +184,24 @@ class Map:
             print("No obstacles")
 
 
+        no_x = int(math.ceil((self.airspace[3] - self.airspace[0]) / discretization)) + 1
+        no_y = int(math.ceil((self.airspace[4] - self.airspace[1]) / discretization)) + 1
+
+
+        x_values = list(range(no_x))
+        y_values = list(range(no_y))
+        x_values = [i * discretization for i in x_values]
+        y_values = [i * discretization for i in y_values]
+
+        # self.free_space_grid = np.zeros(no_x, no_y)
+        self.mesh_grid = [list(product([x_value], y_values)) for x_value in x_values]
+        self.occupancy_grid = np.zeros((no_x, no_y))
+
+        for i, row in enumerate(self.mesh_grid):
+            for j, coords in enumerate(row):
+                if not self.is_passable(coords[0], coords[1]):
+                    self.occupancy_grid[i, j] = 1
+        print()
 
     def is_passable(self, x, y):
         """

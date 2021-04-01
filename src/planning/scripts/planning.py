@@ -94,6 +94,12 @@ class PathPlanner:
         self.current_goal_odom = cmd
 
 
+def exploration(method="next_best_view"):
+
+
+
+
+
 def main(file="planning_test_map.json"):
     rospy.init_node('planning')
     my_path = os.path.abspath(os.path.dirname(__file__))
