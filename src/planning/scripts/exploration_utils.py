@@ -4,6 +4,9 @@ import math
 from itertools import product
 import numpy as np
 import os.path
+import sys
+import matplotlib.pyplot as plt
+np.set_printoptions(threshold=sys.maxsize)
 
 class CrazyfliCamera:
     def __init__(self, FOV, render_distance):
@@ -45,7 +48,16 @@ class DoraTheExplorer:
         #             self.visited_grid[i, j] = 1
 
 
+
     def viewable_points(self, point, mode="Test"):
+        def is_neighbourhood_visited(visited_grid, number_of_idx, x_idx, y_idx):
+            for i in range(-number_of_idx, number_of_idx + 1):
+                for j in range(-number_of_idx, number_of_idx + 1):
+                    if i ** 2 + j ** 2 <= number_of_idx and 0 <= x_idx + i < visited_grid.shape[0] and 0 <= y_idx + j < visited_grid.shape[1]:
+                        if visited_grid[x_idx + i, y_idx + j] == 0:
+                            return False
+            return True
+
 
         for i in range(len(self.mesh_grid)):
             if self.mesh_grid[i][0][0] - self.discretization/2 <= point[0] <= self.mesh_grid[i][0][0] + self.discretization/2:
@@ -62,42 +74,62 @@ class DoraTheExplorer:
             visited_temp = np.zeros(self.visited_grid.shape)
             for i in range(-number_of_idx, number_of_idx + 1):
                 for j in range(-number_of_idx, number_of_idx + 1):
-                    if i**2 + j**2 <= number_of_idx:
+                    if i**2 + j**2 <= number_of_idx and 0 <= x_idx + i < visited_temp.shape[0] and 0 <= y_idx + j < visited_temp.shape[1]:
                         visited_temp[x_idx + i, y_idx + j] = 1
             return visited_temp
 
         elif mode == "Current":
             for i in range(-number_of_idx, number_of_idx + 1):
                 for j in range(-number_of_idx, number_of_idx + 1):
-                    if i**2 + j**2 <= number_of_idx:
-                        self.visited_grid[x_idx + i, y_idx + j] = 1
-                        self.points_set.remove(self.mesh_grid[x_idx + i][y_idx + j])
+                    if i**2 + j**2 <= number_of_idx and 0 <= x_idx + i < self.visited_grid.shape[0] and 0 <= y_idx + j < self.visited_grid.shape[1]:
+                        if self.visited_grid[x_idx + i, y_idx + j] == 0:
+                            self.visited_grid[x_idx + i, y_idx + j] = 1
+                            # only remove points if all its neighbourhood range are already removed.
+                            if is_neighbourhood_visited(self.visited_grid, number_of_idx, x_idx, y_idx):
+                                self.points_set.remove(self.mesh_grid[x_idx + i][y_idx + j])
             return self.visited_grid
 
         else:
             print("error")
 
 
+
+
     def generate_next_best_view(self):
 
+        while (len(self.points_set) != 0):
+            # 1. decide how much we can view
+            self.visited_grid = self.viewable_points(self.current_position, "Current")
 
-
-        # 1. decide how much we can view
-        self.visited_grid = self.viewable_points(self.current_position, "Current")
-
-        # 2. generate random points or all of them and check new things they can view
-
-
-        # 3.
-
-
-
+            # 2. generate random points or all of them and check new things they can view
+            best_result = [None, 0]
+            for point in self.points_set:
+                if self.Map.is_passable(*point):
+                    visited = self.viewable_points(point, "Test")
+                    usefulness = np.sum(np.logical_or(self.visited_grid, visited))
+                    # print(point, usefulness)
+                    if usefulness > best_result[1]:
+                        best_result = [point, usefulness]
+            print("best result", best_result)
+            # 3.
+            if best_result[0] is not None:
+                self.path.append(best_result[0])
+                self.current_position = best_result[0]
+            else:
+                print()
+            if best_result[1] == 2297:
+                print()
+            # print(self.visited_grid)
+            plt.matshow(self.visited_grid)
+            plt.show()
+        #     print()
+        print(len(self.path))
 
 
 def test():
     # world_map = Map("course_packages/dd2419_resources/worlds_json/planning_test_map.json")
     my_path = os.path.abspath(os.path.dirname(__file__))
-    file = "lucas_room_screen.world.json"
+    file = "dora_adventure_map.world.json" #"lucas_room_screen.world.json"
     map_path = os.path.join(my_path, "../..", "course_packages/dd2419_resources/worlds_json", file)
     Dora = DoraTheExplorer(map_path)
     Dora.generate_next_best_view()
