@@ -15,6 +15,7 @@ def camera_calibration():
     imgpoints = [] # 2d points in image plane.
     images = glob.glob('*.jpg')
     for fname in images:
+        print(fname)
         img = cv.imread(fname)
         gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
         # Find the chess board corners

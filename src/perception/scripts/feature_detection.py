@@ -93,13 +93,13 @@ def sift_feasture_detection(query_img_path, train_img_path, crop):
             good.append([m])
     # cv.drawMatchesKnn expects list of lists as matches.
     print("took {}s to run".format(time.time()-start_time))
-    img3 = cv.drawMatchesKnn(img1, kp1, img2, kp2, good, None, flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
-    plt.imshow(img3), plt.show()
+    # img3 = cv.drawMatchesKnn(img1, kp1, img2, kp2, good, None, flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    # plt.imshow(img3), plt.show()
     return kp1, kp2, good, img2, center
 
 
-def draw(img, center, imgpts):
-    pts = imgpts.astype("int32")
+def draw(img, center, pts):
+    # pts = imgpts.astype("int32")
     img = cv.line(img, center, tuple(pts[0].ravel()), (255, 0, 0), 5)
     img = cv.line(img, center, tuple(pts[1].ravel()), (0, 255, 0), 5)
     img = cv.line(img, center, tuple(pts[2].ravel()), (0, 0, 255), 5)
@@ -157,10 +157,11 @@ def get_orientation(camera_matrix):
     # train_img_path = query_img_path
     model_run = run_model_singleimage(train_img_path)[0][0]
     print(model_run)
-
+    model_run = None
     # sift_feasture_detection(query_img_path, query_img_path, model_run)
-    kp1, kp2, good, img2, image_center = sift_feasture_detection(query_img_path, train_img_path, model_run)
+    kp1, kp2, good, img2, image_center = sift_feasture_detection(query_img_path, query_img_path, model_run)
     result_img = img2
+    plt.imshow(img2), plt.show()
     # Harded for now but will be read form camera matrix
     # I got these values from camera info
     D = np.array([0.061687, -0.049761, -0.008166, 0.004284, 0.0])
@@ -170,7 +171,7 @@ def get_orientation(camera_matrix):
     # TODO: replace camera values with a camera
     # D = np.array([0.0, 0.0, 0.0, 0.0, 0.0])
 
-    axis = np.float32([[3, 0, 0], [0, 3, 0], [0, 0, -3]]).reshape(-1, 3)
+    axis = np.float32([[-3, 0, 0], [0, 3, 0], [0, 0, 3]]).reshape(-1, 3)
 
     camera_matrix = K
     dist_coeffs = D
@@ -178,15 +179,17 @@ def get_orientation(camera_matrix):
     object_points, image_points = get_object_point(kp1, kp2, good)
     # object_points = get_unique(object_points)
     # image_points = get_unique(image_points)
+    objp = np.zeros((4 * 4, 3), np.float32)
+    objp[:, :2] = np.mgrid[0:4, 0:4].T.reshape(-1, 2)
+    # image_points = get_unique(image_points)
 
 
 
-
-    retval, rvec, tvec, inliers = cv.solvePnPRansac(object_points,
-                                                    image_points, camera_matrix, dist_coeffs)
+    retval, rvec, tvec, inliers = cv.solvePnPRansac(objp,
+                                                    objp[:, :2], camera_matrix, dist_coeffs)
 
     image_points, jacobian = cv.projectPoints(axis, rvec, tvec, camera_matrix, dist_coeffs)
-    image_points = np.array([[ 33.95569611, 180.4183197 ],  [112.67071533, 144.4498291 ], [131.08009338, 114.48181152]])
+    # image_points = np.array([[ 33.95569611, 180.4183197 ],  [112.67071533, 144.4498291 ], [131.08009338, 114.48181152]])
     #
     result_img = draw(img2, image_center, image_points)
     # result_img = draw_axis(img2, R, tvec, K)
