@@ -6,6 +6,8 @@ import numpy as np
 import os.path
 import sys
 import matplotlib.pyplot as plt
+import time
+import random
 np.set_printoptions(threshold=sys.maxsize)
 
 class CrazyfliCamera:
@@ -22,7 +24,7 @@ class DoraTheExplorer:
         self.mesh_grid = None
         self.visited_grid = None
         self.points_set = None
-        self.discretization = 0.05
+        self.discretization = 0.1
         self.generate_map_occupancy()
         self.current_position = (0.8, 0.8)
         self.path = []
@@ -74,14 +76,14 @@ class DoraTheExplorer:
             visited_temp = np.zeros(self.visited_grid.shape)
             for i in range(-number_of_idx, number_of_idx + 1):
                 for j in range(-number_of_idx, number_of_idx + 1):
-                    if i**2 + j**2 <= number_of_idx and 0 <= x_idx + i < visited_temp.shape[0] and 0 <= y_idx + j < visited_temp.shape[1]:
+                    if i**2 + j**2 <= number_of_idx**2 and 0 <= x_idx + i < visited_temp.shape[0] and 0 <= y_idx + j < visited_temp.shape[1]:
                         visited_temp[x_idx + i, y_idx + j] = 1
             return visited_temp
 
         elif mode == "Current":
             for i in range(-number_of_idx, number_of_idx + 1):
                 for j in range(-number_of_idx, number_of_idx + 1):
-                    if i**2 + j**2 <= number_of_idx and 0 <= x_idx + i < self.visited_grid.shape[0] and 0 <= y_idx + j < self.visited_grid.shape[1]:
+                    if i**2 + j**2 <= number_of_idx**2 and 0 <= x_idx + i < self.visited_grid.shape[0] and 0 <= y_idx + j < self.visited_grid.shape[1]:
                         if self.visited_grid[x_idx + i, y_idx + j] == 0:
                             self.visited_grid[x_idx + i, y_idx + j] = 1
                             # only remove points if all its neighbourhood range are already removed.
@@ -89,42 +91,49 @@ class DoraTheExplorer:
                                 self.points_set.remove(self.mesh_grid[x_idx + i][y_idx + j])
             return self.visited_grid
 
+
         else:
             print("error")
 
 
 
 
-    def generate_next_best_view(self):
-
+    def generate_next_best_view(self, display=True):
+        prev_best = -1
+        start_time = time.time()
+        # c = 1
+        best_result = [None, 0]
+        # best_result[1] != prev_best
         while (len(self.points_set) != 0):
             # 1. decide how much we can view
             self.visited_grid = self.viewable_points(self.current_position, "Current")
 
             # 2. generate random points or all of them and check new things they can view
             best_result = [None, 0]
+            start_time2 = time.time()
+            # for point in self.points_set:
+            random_factor = 1  # 0.2 gives about the best answer still
+            # for point in [random.choice(tuple(self.points_set)) for i in range(int(random_factor * len(self.points_set)))]:
             for point in self.points_set:
                 if self.Map.is_passable(*point):
+                    # start_time3 = time.time()
                     visited = self.viewable_points(point, "Test")
                     usefulness = np.sum(np.logical_or(self.visited_grid, visited))
-                    # print(point, usefulness)
                     if usefulness > best_result[1]:
                         best_result = [point, usefulness]
-            print("best result", best_result)
             # 3.
+            if best_result[1] == prev_best:
+                break
             if best_result[0] is not None:
                 self.path.append(best_result[0])
                 self.current_position = best_result[0]
-            else:
-                print()
-            if best_result[1] == 2297:
-                print()
-            # print(self.visited_grid)
-            plt.matshow(self.visited_grid)
-            plt.show()
-        #     print()
-        print(len(self.path))
 
+            if display:
+                plt.matshow(self.visited_grid)
+                plt.show()
+            prev_best = best_result[1]
+        # print("total time taken", time.time()- start_time)
+        # print("best", prev_best)
 
 def test():
     # world_map = Map("course_packages/dd2419_resources/worlds_json/planning_test_map.json")
