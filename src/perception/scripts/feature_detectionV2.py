@@ -50,10 +50,11 @@ def sift_feasture_detection(query_img_path, train_img_path, crop):
     # Apply ratio test
     good = []
     for m, n in matches:
-        if m.distance < 0.75 * n.distance:
+        if m.distance < 0.9 * n.distance:
             good.append([m])
-
-    return kp1, kp2, good, img2, center, object_points, img2_og
+    img3 = cv.drawMatchesKnn(img1, kp1, img2, kp2, good, None, flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    plt.imshow(img3), plt.show()
+    return kp1, kp2, good, img1, img2, center, object_points, img2_og
 
 def draw(img, corners, imgpts):
     img = cv.line(img, corners, tuple(imgpts[0].ravel()), (255, 0, 0), 5)
@@ -67,18 +68,27 @@ def get_points(kp1, kp2, good, object_center):
     object_points = np.zeros((image_points.shape[0], image_points.shape[1] + 1))
     object_points[:, :2] = (canonical2D_kp - object_center) / 10.0
 
-    return object_points, image_points
+    # trying to deal with the duplicates of signficant points
 
-def get_orientation():
+    image_rows, image_idx = np.unique(image_points, axis=0, return_index=True)
+    object_rows, object_idx = np.unique(object_points, axis=0, return_index=True)
+    idx = image_idx if len(image_idx) <= len(object_idx) else object_idx
+
+
+    assert image_rows.shape[0] >= 4
+
+    return object_points[idx], image_points[idx]
+
+def get_orientation(see_image_points=False):
     my_path = os.path.abspath(os.path.dirname(__file__))
-    query_img_path = os.path.join(my_path, "dd2419_traffic_sign_pdfs", "dangerous_right.jpg")
-    train_img_path = os.path.join(my_path, "dd2419_detector_baseline_OG/performance_test/test_images",
-                                  "0000069.jpg")
+    query_img_path = os.path.join(my_path, "dd2419_traffic_sign_pdfs", "follow_right.jpg")
+    train_img_path = os.path.join(my_path, "dd2419_traffic_sign_pdfs", "G6_00138.jpg")#os.path.join(my_path, "dd2419_detector_baseline_OG/performance_test/test_images",
+                                  #"0000069.jpg")
 
     model_run = run_model_singleimage(train_img_path)[0][0]
+    # model_run = None
 
-
-    kp1, kp2, good, img2, image_center, object_center, img2_og = sift_feasture_detection(query_img_path, query_img_path, None)
+    kp1, kp2, good, img1, img2, image_center, object_center, img2_og = sift_feasture_detection(query_img_path, train_img_path, model_run)
     result_img = img2
     plt.imshow(img2), plt.show()
     # Harded for now but will be read form camera matrix
@@ -94,20 +104,33 @@ def get_orientation():
 
     camera_matrix = K
     dist_coeffs = D
+    # cv.imwrite("test.jpg", result_img)
+    # object_points, image_points = get_points(kp1, kp2, good, object_center)
+    image_points = np.array([[103, 65], [99, 126], [131, 97], [63, 152], [89, 28]], np.float32)
+    object_points = np.zeros((image_points.shape[0], 3), np.float32)
+    object_points[:, :2] = (np.array([[305, 106], [304, 282], [394, 194], [198, 366], [244, 5]]) - np.array([497/2, 480/2])) / 10.0
 
-    object_points, image_points = get_points(kp1, kp2, good, object_center)
+    if see_image_points:
+        plt.imshow(img2)
+        plt.scatter(image_points[:, 0], image_points[:, 1])
+        plt.show()
+        plt.imshow(img1)
+        plt.scatter(object_points[:, 0] * 10.0 + 497/2, object_points[:, 1] * 10.0 + 480/2)
+        plt.show()
 
     retval, rvec, tvec, _ = cv.solvePnPRansac(object_points.reshape(-1, 1, 3), image_points.reshape(-1, 1, 2), camera_matrix, dist_coeffs)
+    # retval, rvec, tvec, inliers = cv.solvePnPRansac(object_points, image_points, camera_matrix, dist_coeffs)
+    rotation_matrix, _ = cv.Rodrigues(rvec)
 
     image_points, jacobian = cv.projectPoints(axis, rvec, tvec, camera_matrix, dist_coeffs)
 
-    result_img = draw(img2_og, image_center, image_points)
+    result_img = draw(result_img, image_center, image_points)
     plt.imshow(result_img), plt.show()
 
 
 
 if __name__ == "__main__":
-    get_orientation()
+    get_orientation(True)
 
 
 
