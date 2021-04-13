@@ -14,25 +14,17 @@ transforms = None
 
 def marker_callback(msg):
     global transforms
-    transforms = []
+    transforms = None
     is_localized()
-    for m in msg.markers:
-        temp = broadcast_transform(m)
-        transforms.append(temp)
+    transforms = broadcast_transform(msg)
 
 
-def broadcast_transform(m):
+def broadcast_transform(t_map):
     # Find transform of pose of detected marker in odom
-    if not tf_buf.can_transform(frame_id, m.header.frame_id, m.header.stamp, rospy.Duration(tf_timeout)):
-        rospy.logwarn_throttle(5.0, '%s: No transform from %s to %s', rospy.get_name(), m.header.frame_id, frame_id)
+    if not tf_buf.can_transform(frame_id, t_map.header.frame_id, t_map.header.stamp, rospy.Duration(tf_timeout)):
+        rospy.logwarn_throttle(5.0, '%s: No transform from %s to %s', rospy.get_name(), t_map.header.frame_id, frame_id)
         return
-    marker = tf_buf.transform(PoseStamped(header=m.header, pose=m.pose.pose), 'cf1/odom')
-
-    # Find transform of pose of static marker in map
-    try:
-        t_map = tf_buf.lookup_transform('map', "aruco/marker" + str(m.id), m.header.stamp, rospy.Duration(tf_timeout))
-    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-        return
+    marker = tf_buf.transform(PoseStamped(header=t_map.header, pose=t_map.pose.pose), 'cf1/odom')
 
     # Create new message with time stamps and frames
     t = TransformStamped()
@@ -87,10 +79,8 @@ def main():
     rate = rospy.Rate(20)  # Hz
     while not rospy.is_shutdown():
         if transforms is not None:
-            for t in transforms:
-                if t is not None:
-                    br.sendTransform(update_time(t))
-                    is_localized()
+            br.sendTransform(update_time(t))
+            is_localized()
         rate.sleep()
 
 
@@ -98,7 +88,7 @@ rospy.init_node('odom_publisher')
 tf_buf = tf2_ros.Buffer()
 tf_lstn = tf2_ros.TransformListener(tf_buf)
 br = tf2_ros.TransformBroadcaster()
-sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback)
+sub_marker = rospy.Subscriber('/DA/best_marker', TransformStamped, marker_callback)
 pub = rospy.Publisher('localisation/is_localised', Bool, queue_size=10)
 tf_timeout = rospy.get_param('~tf_timeout', 0.1)
 frame_id = rospy.get_param('~frame_id', 'cf1/odom')
