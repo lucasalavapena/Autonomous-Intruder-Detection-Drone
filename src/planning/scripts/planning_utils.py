@@ -11,7 +11,7 @@ from itertools import product
 
 # for test
 # random.seed(19)
-DRONE_MAX_SIDE = 0.15
+DRONE_MAX_SIDE = 0.2
 
 def RRT(curr_x, curr_y, goal_x, goal_y, Map):
     """

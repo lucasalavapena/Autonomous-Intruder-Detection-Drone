@@ -63,6 +63,26 @@ class PathPlanner:
             return
         self.pose_map = self.tf_buf.transform(self.current_info, 'map')
 
+    def rotation_is_met(self, target_yaw, error_d_tol=7.5):
+        """
+
+        :param target_yaw:
+        :param error_d_tol: error tolerance for yaw in degrees
+        :return:
+        """
+        _, _, actual_yaw = euler_from_quaternion((self.current_info.pose.orientation.x,
+                                           self.current_info.pose.orientation.y,
+                                            self.current_info.pose.orientation.z,
+                                           self.current_info.pose.orientation.w))
+
+        actual_yaw_d = math.degrees(actual_yaw) % 360
+        rospy.loginfo_throttle(5, "actual angles: %f target angle: %f", actual_yaw_d, target_yaw)
+
+        if ( actual_yaw_d + error_d_tol > target_yaw > actual_yaw_d - error_d_tol):
+            return True
+        else:
+            return False
+
     def d360_yaw(self):
         cmd = Position()
 
@@ -81,10 +101,9 @@ class PathPlanner:
         delta_yaw = [45 * i for i in range(1, 8)]
 
         for d_yaw in delta_yaw:
-            cmd.yaw = initial_yaw + d_yaw
-
-            self.pub_cmd.publish(cmd)
-            rospy.sleep(3)
+            cmd.yaw = (initial_yaw + d_yaw) % 360
+            while not self.rotation_is_met(cmd.yaw):
+                self.pub_cmd.publish(cmd)
 
     def publish_cmd(self, goal):
         goal.header.stamp = rospy.Time.now()
