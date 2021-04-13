@@ -137,7 +137,7 @@ def get_orientation(see_image_points=False):
         plt.scatter(image_points[:, 0], image_points[:, 1])
         plt.show()
 
-    retval, rvec, tvec, inliers = cv.solvePnPRansac(object_points, image_points, camera_matrix, dist_coeffs)
+    retval, rvec, tvec, inliers = cv.solvePnPRansac(object_points.reshape(-1, 1, 3), image_points.reshape(-1, 1, 2), camera_matrix, dist_coeffs)
 
     print(rvec)
     print(tvec)
