@@ -10,7 +10,7 @@ import time
 import random
 np.set_printoptions(threshold=sys.maxsize)
 
-class CrazyfliCamera:
+class CrazyflieCamera:
     def __init__(self, FOV, render_distance):
         self.FOV = FOV #degrees
         self.render_distance = render_distance# m - distance we can see in front of us
@@ -18,15 +18,15 @@ class CrazyfliCamera:
 
 
 class DoraTheExplorer:
-    def __init__(self, map_path):
+    def __init__(self, map_path, current_position=(0.8, 0.8)):
         self.Map = Map(map_path)
-        self.camera = CrazyfliCamera(140, 0.5)
+        self.camera = CrazyflieCamera(140, 0.5)
         self.mesh_grid = None
         self.visited_grid = None
         self.points_set = None
         self.discretization = 0.1
         self.generate_map_occupancy()
-        self.current_position = (0.8, 0.8)
+        self.current_position = current_position
         self.path = []
 
     def generate_map_occupancy(self):
@@ -98,7 +98,7 @@ class DoraTheExplorer:
 
 
 
-    def generate_next_best_view(self, display=True):
+    def generate_next_best_view(self, display=False):
         prev_best = -1
         start_time = time.time()
         # c = 1
@@ -134,14 +134,15 @@ class DoraTheExplorer:
             prev_best = best_result[1]
         # print("total time taken", time.time()- start_time)
         # print("best", prev_best)
-
+        print("path computed")
+        return self.path
 def test():
     # world_map = Map("course_packages/dd2419_resources/worlds_json/planning_test_map.json")
     my_path = os.path.abspath(os.path.dirname(__file__))
     file = "dora_adventure_map.world.json" #"lucas_room_screen.world.json"
     map_path = os.path.join(my_path, "../..", "course_packages/dd2419_resources/worlds_json", file)
     Dora = DoraTheExplorer(map_path)
-    Dora.generate_next_best_view()
+    print(Dora.generate_next_best_view())
 if __name__ == "__main__":
     test()
 

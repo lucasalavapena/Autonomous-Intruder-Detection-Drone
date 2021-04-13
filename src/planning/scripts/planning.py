@@ -10,7 +10,7 @@ from geometry_msgs.msg import PoseStamped
 from crazyflie_driver.msg import Position
 import os.path
 from planning_utils import Map, RRT
-
+from exploration_utils import DoraTheExplorer
 
 class PathPlanner:
 
@@ -35,8 +35,8 @@ class PathPlanner:
         self.convert_pose_to_map()
 
     def goal_is_met(self, goal, current_info):
-        rospy.loginfo_throttle(5, 'current_info:\n%s', current_info)
-        rospy.loginfo_throttle(5, 'goal:\n%s', goal)
+        # rospy.loginfo_throttle(5, 'current_info:\n%s', current_info)
+        # rospy.loginfo_throttle(5, 'goal:\n%s', goal)
         if (goal.x + self.ERROR_TOLERANCE > current_info.pose.position.x > goal.x - self.ERROR_TOLERANCE and
                 goal.y + self.ERROR_TOLERANCE > current_info.pose.position.y > goal.y - self.ERROR_TOLERANCE and
                 goal.z + self.ERROR_TOLERANCE > current_info.pose.position.z > goal.z - self.ERROR_TOLERANCE):
@@ -58,11 +58,33 @@ class PathPlanner:
 
     def convert_pose_to_map(self):
         timeout = rospy.Duration(0.5)
-        # print("hi")
         while not self.tf_buf.can_transform(self.current_info.header.frame_id, 'map', self.current_info.header.stamp, timeout):
-            rospy.logwarn_throttle(5.0, 'No transform from %s to map' % self.current_info.header.frame_id)
+            rospy.logwarn_throttle(5.0, 'hello there..No transform from %s to map' % self.current_info.header.frame_id)
             return
         self.pose_map = self.tf_buf.transform(self.current_info, 'map')
+
+    def d360_yaw(self):
+        cmd = Position()
+
+        cmd.x = self.current_info.pose.position.x
+        cmd.y = self.current_info.pose.position.y
+        cmd.z = self.current_info.pose.position.z
+
+        _, _, initial_yaw = euler_from_quaternion((self.current_info.pose.orientation.x,
+                                           self.current_info.pose.orientation.y,
+                                            self.current_info.pose.orientation.z,
+                                           self.current_info.pose.orientation.w))
+
+        initial_yaw = math.degrees(initial_yaw)
+
+
+        delta_yaw = [45 * i for i in range(1, 8)]
+
+        for d_yaw in delta_yaw:
+            cmd.yaw = initial_yaw + d_yaw
+
+            self.pub_cmd.publish(cmd)
+            rospy.sleep(3)
 
     def publish_cmd(self, goal):
         goal.header.stamp = rospy.Time.now()
@@ -95,7 +117,31 @@ class PathPlanner:
 
 
 def exploration(method="next_best_view"):
-
+    # TODO this needs to use RTT
+    rospy.init_node('planning')
+    my_path = os.path.abspath(os.path.dirname(__file__))
+    file = "lucas_room_screen.json"
+    map_path = os.path.join(my_path, "../..", "course_packages/dd2419_resources/worlds_json", file)
+    # print(map_path)
+    planner = PathPlanner()
+    rospy.sleep(2)
+    Dora = DoraTheExplorer(map_path)
+    path = Dora.generate_next_best_view()
+    print("path", path)
+    goals = [planner.create_msg(x, y, 0.5) for (x, y) in path]
+    rate = rospy.Rate(10)  # Hz
+    i = 0
+    while not rospy.is_shutdown():
+        goal = goals[i]
+        planner.publish_cmd(goal)
+        if planner.current_info is not None:
+            print("planner goal", planner.current_goal_odom, "current pose in odom", planner.current_info)
+            if planner.goal_is_met(planner.current_goal_odom, planner.current_info) and goal != goals[-1]:
+                # TODO do 360 degree rotation slowly
+                planner.d360_yaw()
+                print("Goal met")
+                # print(goal)
+                i += 1
 
 
 
@@ -125,4 +171,4 @@ def main(file="planning_test_map.json"):
                 i += 1
 
 if __name__ == '__main__':
-    main()
+    exploration()

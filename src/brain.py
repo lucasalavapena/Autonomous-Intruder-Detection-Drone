@@ -4,7 +4,8 @@ import rospy
 import os
 import tf2_ros
 import tf2_geometry_msgs
-from planning.scripts import planning, planning_utils
+from planning.scripts import planning, planning_utils, exploration_utils
+
 from std_msgs.msg import Bool
 
 is_localised = None
@@ -16,47 +17,55 @@ def is_localised_callback(msg):
     is_localised = msg.data
     # print('Drone is localised. Safe to fly.')
 
-
 def main():
     print("RUNNING...")
     rate = rospy.Rate(20)  # Hz
     planner = planning.PathPlanner()
     my_path = os.path.abspath(os.path.dirname(__file__))
-    map_path = os.path.join(my_path, "course_packages/dd2419_resources/worlds_json", "lucas_room_screen.world.json")
+    # map_path = os.path.join(my_path, "course_packages/dd2419_resources/worlds_json", "lucas_room_screen.world.json")
+    map_path = os.path.join(my_path, "course_packages/dd2419_resources/worlds_json", "DA_test.world.json")
+
     world_map = planning_utils.Map(map_path)
+    start_flag = False
+    print("goodnight")
+    rospy.sleep(5)
+    if planner.pose_map is not None:
+        # Starting location
+        print("got here")
+        start_x = planner.pose_map.pose.position.x
+        start_y = planner.pose_map.pose.position.y
+
+        # Exploration
+        Dora = exploration_utils.DoraTheExplorer(map_path, (start_x, start_y))
+        overall_path = Dora.generate_next_best_view()
+
+
     ind = 0
+
+
     while not rospy.is_shutdown():
-        # print(is_localised)
         rate.sleep()
-        # print("is localized: ",is_localised)
         if is_localised:
-            setpoints = [[1.6, 1], [0.5, 0.5]]#, [], [], []]#[[0.5, 0.5], [2.0, 0.3], [2.0, 1.1], [0.3, 1.1], [0.4, 0.4]]
-
-            # print("planner.current_info: ", planner.current_info)
-
+            # print(planner.pose_map )
             if planner.pose_map is not None:
                 print("RRT start")
                 x = planner.pose_map.pose.position.x
                 y = planner.pose_map.pose.position.y
 
-                path = planning_utils.RRT(x, y, setpoints[ind][0], setpoints[ind][1], world_map)
+                path = planning_utils.RRT(x, y, overall_path[ind][0], overall_path[ind][1], world_map)
                 rospy.loginfo_throttle(5, 'Path:\n%s', path)
-                #
-                # print(setpoints[ind])
-                # print("PATH: ", path)
-                # break
+
                 path_msg = [planner.create_msg(a, b, 0.3) for (a, b) in path]
-                # path_msg.append(planner.create_msg(1.6, 1, 0.1))
+                print("are you ready to rumble on your marks get set go")
                 for pnt in path_msg:
+                    print("lets piblish")
                     planner.publish_cmd(pnt)
                     rospy.loginfo_throttle(5, 'map loc:\n%s %s', planner.pose_map.pose.position.x, planner.pose_map.pose.position.y)
 
                     while not planner.goal_is_met(planner.current_goal_odom, planner.current_info):
-                        # print("Current Position: {},{}".format(planner.current_info.pose.position.x, planner.current_info.pose.position.y))
-                        # print("Goal Position: {},{}".format(pnt.pose.position.x, pnt.pose.position.y))
                         planner.publish_cmd(pnt)
                         rate.sleep()
-
+                    planner.d360_yaw()
                     print("GOT TO CHECKPOINT", " goal: {} {} current:{} {}".format(planner.current_goal_odom.x,
                                                                              planner.current_goal_odom.y,
                                                                              planner.current_info.pose.position.x,
@@ -64,7 +73,7 @@ def main():
                 print("Finished point {}".format(ind))
                 ind += 1
                 print("ind {}".format(ind) )
-                if ind == 2:
+                if ind == len(overall_path):
                     ind = 0
                 #print(setpoints[ind])
 
