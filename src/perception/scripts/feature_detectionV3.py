@@ -6,14 +6,15 @@ import time
 from dd2419_detector_baseline_OG.utils import run_model_singleimage
 
 class feature_detected:
-    def __init__(self, kp1, kp2, good, canon_img, drone_img, center_in_og_img, center_in_cropped_img, drone_img_og):
+    def __init__(self, kp1, kp2, good, canon_img, drone_img, center_in_og_img, center_in_cropped_img, canon_center, drone_img_og):
         self.key_points = {1: kp1, 2: kp2}
         self.good_matches = good
         self.images = {"canon_img": canon_img,
                        "drone_img": drone_img,
                        "drone_img_og": drone_img_og}
         self.centers = {"center_in_og_img": center_in_og_img,
-                        "center_in_cropped_img": center_in_cropped_img} 
+                        "center_in_cropped_img": center_in_cropped_img,
+                        "canon_center": canon_center}
 
 def get_camera_values():
     D = np.array([0.061687, -0.049761, -0.008166, 0.004284, 0.0])
@@ -46,8 +47,13 @@ def image_preprocessing(canon_img_path, drone_img_path, bounding_box=None, crop=
         if crop:
             drone_img = drone_img[top_y: bottom_y, top_x: bottom_x]
 
+        dsize = (int(round(bounding_box['width'].item())),
+                 int(round(bounding_box['height'].item())))  # cv_im_cropped.shape[0:2]#(640, 480)
+        canon_img = cv.resize(canon_img, dsize, interpolation=cv.INTER_AREA)
+
         center_in_og_img = ((top_x + bottom_x)/2, (top_y + bottom_y)/2)
         center_in_cropped_img = ((bottom_x - top_x)/2, (bottom_y - top_y)/2)
+        canon_center = ((canon_img.shape[0]) / 2, (canon_img.shape[1]) / 2)
     else:
         top_x = 0
         top_y = 0
@@ -59,7 +65,7 @@ def image_preprocessing(canon_img_path, drone_img_path, bounding_box=None, crop=
         center_in_cropped_img = center_in_og_img
 
     return canon_img, drone_img, center_in_cropped_img,\
-           center_in_og_img, drone_img_og
+           center_in_og_img, canon_center, drone_img_og
 
 def get_matches(des1, des2, canon_img, kp1, drone_img, kp2, display_result=False):
     # BFMatcher with default params
@@ -78,7 +84,7 @@ def get_matches(des1, des2, canon_img, kp1, drone_img, kp2, display_result=False
     return good
 
 def sift_feature_detection(canon_img_path, drone_img_path, bounding_box=None, crop=False, display_result=False):
-    canon_img, drone_img, center_in_cropped_img, center_in_og_img, drone_img_og =\
+    canon_img, drone_img, center_in_cropped_img, center_in_og_img, canon_center,  drone_img_og =\
         image_preprocessing(canon_img_path, drone_img_path, bounding_box, crop)
 
     # Initiate SIFT detector
@@ -92,12 +98,12 @@ def sift_feature_detection(canon_img_path, drone_img_path, bounding_box=None, cr
     good = get_matches(des1, des2, canon_img, kp1, drone_img, kp2, display_result=display_result)
 
     return feature_detected(kp1, kp2, good, canon_img, drone_img, center_in_og_img, center_in_cropped_img,
-                            drone_img_og)
+                            canon_center, drone_img_og)
 
 
 
 def orb_feature_detection(canon_img_path, drone_img_path, bounding_box=None, crop=False, display_result=False):
-    canon_img, drone_img, center_in_cropped_img, center_in_og_img, drone_img_og =\
+    canon_img, drone_img, center_in_cropped_img, center_in_og_img, canon_center,  drone_img_og =\
         image_preprocessing(canon_img_path, drone_img_path, bounding_box, crop)
 
     # Initiate SIFT detector
@@ -111,10 +117,10 @@ def orb_feature_detection(canon_img_path, drone_img_path, bounding_box=None, cro
 
 
     return feature_detected(kp1, kp2, good, canon_img, drone_img, center_in_og_img, center_in_cropped_img,
-                            drone_img_og)
+                            canon_center, drone_img_og)
 
 def surf_feature_detection(canon_img_path, drone_img_path, bounding_box=None, crop=False, display_result=False):
-    canon_img, drone_img, center_in_cropped_img, center_in_og_img, drone_img_og =\
+    canon_img, drone_img, center_in_cropped_img, center_in_og_img, canon_center,  drone_img_og =\
         image_preprocessing(canon_img_path, drone_img_path, bounding_box, crop)
 
     # Initiate SIFT detector
@@ -128,10 +134,10 @@ def surf_feature_detection(canon_img_path, drone_img_path, bounding_box=None, cr
 
 
     return feature_detected(kp1, kp2, good, canon_img, drone_img, center_in_og_img, center_in_cropped_img,
-                            drone_img_og)
+                            canon_center, drone_img_og)
 
 def BRIEF_feature_detection(canon_img_path, drone_img_path, bounding_box=None, crop=False, display_result=False):
-    canon_img, drone_img, center_in_cropped_img, center_in_og_img, drone_img_og =\
+    canon_img, drone_img, center_in_cropped_img, center_in_og_img, canon_center,  drone_img_og =\
         image_preprocessing(canon_img_path, drone_img_path, bounding_box, crop)
 
     # Initiate SIFT detector
@@ -152,7 +158,7 @@ def BRIEF_feature_detection(canon_img_path, drone_img_path, bounding_box=None, c
 
 
     return feature_detected(kp1, kp2, good, canon_img, drone_img, center_in_og_img, center_in_cropped_img,
-                            drone_img_og)
+                            canon_center, drone_img_og)
 
 def draw(img, corners, imgpts):
     img = cv.line(img, corners, tuple(imgpts[0].ravel()), (255, 0, 0), 5)
@@ -166,24 +172,24 @@ def get_points(kp1, kp2, good, object_center):
     object_points = np.zeros((image_points.shape[0], image_points.shape[1] + 1), dtype=np.float64)
     object_points[:, :2] = (canonical2D_kp - object_center) / 10.0
 
-    # return object_points, image_points
+    return object_points, image_points
 
     # trying to deal with the duplicates of signficant points
 
-    image_rows, image_idx = np.unique(image_points, axis=0, return_index=True)
-    object_rows, object_idx = np.unique(object_points, axis=0, return_index=True)
-    idx = image_idx if len(image_idx) <= len(object_idx) else object_idx
-
-    assert image_rows.shape[0] >= 4
-
-    return object_points[idx], image_points[idx]
+    # image_rows, image_idx = np.unique(image_points, axis=0, return_index=True)
+    # object_rows, object_idx = np.unique(object_points, axis=0, return_index=True)
+    # idx = image_idx if len(image_idx) <= len(object_idx) else object_idx
+    #
+    # assert image_rows.shape[0] >= 4
+    #
+    # return object_points[idx], image_points[idx]
 
 def get_orientation(see_image_points=False):
     my_path = os.path.abspath(os.path.dirname(__file__))
-    canon_img_path = os.path.join(my_path, "dd2419_traffic_sign_pdfs", "G6_00138.jpg")
+    canon_img_path = os.path.join(my_path, "dd2419_traffic_sign_pdfs", "follow_right.jpg")
     # drone_img_path = os.path.join(my_path, "dd2419_detector_baseline_OG/performance_test/test_images",
     #                               "0000097.jpg")
-    drone_img_path = "/home/robot/test_images/v2/follow_right/G6_00118.jpg"
+    drone_img_path = "/home/robot/test_images/v2/follow_right/G6_00119.jpg"
     # drone_img_path = os.path.join(my_path, "dd2419_traffic_sign_pdfs", "G6_00138.jpg")
     #os.path.join(my_path, "dd2419_traffic_sign_pdfs", "G6_00138.jpg")#
 
@@ -191,35 +197,36 @@ def get_orientation(see_image_points=False):
     crop = False
     crop_canon = True
 
-    features_detected = sift_feature_detection(canon_img_path, drone_img_path, bounding_box, crop)
+    features_detected = surf_feature_detection(canon_img_path, drone_img_path, bounding_box, crop, display_result=True)
 
     result_img = features_detected.images["drone_img"] # drone image
 
-    axis = np.float32([[3, 0, 0], [0, 3, 0], [0, 0, -3]]).reshape(-1, 3)
+    axis = np.float32([[3, 0, 0], [0, 3, 0], [0, 0, 3]]).reshape(-1, 3)
     D, K, P, R = get_camera_values()
     camera_matrix = K
     dist_coeffs = D
 
-    object_center = features_detected.centers["center_in_og_img"]
+
 
 
     object_points, image_points = get_points(features_detected.key_points[1], features_detected.key_points[2],
-                                             features_detected.good_matches, object_center)
-    if crop:
-        object_center = features_detected.centers["center_in_cropped_img"]
+                                             features_detected.good_matches, features_detected.centers["canon_center"])
+
+
 
     if see_image_points:
         plt.imshow(features_detected.images["drone_img"])
         plt.scatter(image_points[:, 0], image_points[:, 1])
         plt.show()
         plt.imshow(features_detected.images["canon_img"])
-        plt.scatter(object_points[:, 0] * 10.0 + object_center[0], object_points[:, 1] * 10.0 + object_center[1])
+        plt.scatter(object_points[:, 0] * 10.0 + features_detected.centers["canon_center"][0],
+                    object_points[:, 1] * 10.0 + features_detected.centers["canon_center"][1])
         plt.show()
 
     retval, rvec, tvec, inliers = cv.solvePnPRansac(object_points.reshape(-1, 1, 3),
                                                     image_points.reshape(-1, 1, 2),
                                                     camera_matrix, dist_coeffs,
-                                                    reprojectionError=8.0)
+                                                    )
     if see_image_points:
         plt.imshow(features_detected.images["drone_img"])
         plt.scatter(image_points[inliers, 0], image_points[inliers, 1])
@@ -228,15 +235,19 @@ def get_orientation(see_image_points=False):
     # retval, rvec, tvec, inliers = cv.solvePnPRansac(object_points, image_points, camera_matrix, dist_coeffs)
     rotation_matrix, _ = cv.Rodrigues(rvec)
 
-    image_points, jacobian = cv.projectPoints(axis, rvec, tvec, camera_matrix, dist_coeffs)
+    projected_axis, jacobian = cv.projectPoints(axis, rvec, tvec, camera_matrix, dist_coeffs)
 
-    result_img = draw(result_img, object_center, image_points)
+    drone_sign_center_loc = features_detected.centers["center_in_og_img"]
+    if crop:
+        drone_sign_center_loc = features_detected.centers["center_in_cropped_img"]
+
+    result_img = draw(result_img, drone_sign_center_loc, projected_axis)
     plt.imshow(result_img), plt.show()
 
 
 
 if __name__ == "__main__":
-    get_orientation(False)
+    get_orientation(True)
 
 
 
