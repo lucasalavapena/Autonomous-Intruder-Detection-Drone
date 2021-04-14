@@ -13,10 +13,10 @@ def marker_callback(msg):
 
 
 def broadcast_marker_transform(m):
-    rospy.sleep(0.1)
+    #rospy.sleep(0.1)
 
     if not tf_buf.can_transform(frame_id, m.header.frame_id, m.header.stamp, rospy.Duration(tf_timeout)):
-        rospy.logwarn_throttle(5.0, 'No transform from %s to %s', m.header.frame_id, frame_id)
+        rospy.logwarn_throttle(5.0, 'detect_marker: No transform from %s to %s', m.header.frame_id, frame_id)
         return
 
     marker = tf_buf.transform(PoseStamped(header=m.header, pose=m.pose.pose), frame_id)

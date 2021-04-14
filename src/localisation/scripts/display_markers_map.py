@@ -8,6 +8,7 @@ import rospy
 import tf2_ros 
 from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import TransformStamped, Vector3
+from std_msgs.msg import Int16
 
 
 def transform_from_marker(m, n, unique):
@@ -31,6 +32,11 @@ def transform_from_marker(m, n, unique):
 
 
 def main(argv=sys.argv):
+
+    rospy.init_node('display_markers_map')
+    pub = rospy.Publisher('/marker/unique', Int16, queue_size=10)
+    broadcaster = tf2_ros.StaticTransformBroadcaster()
+
     # Let ROS filter through the arguments
     args = rospy.myargv(argv=argv)
 
@@ -58,10 +64,9 @@ def main(argv=sys.argv):
             n += 1
 
     # Publish these transforms statically forever
-    rospy.init_node('display_markers_map')
-    broadcaster = tf2_ros.StaticTransformBroadcaster()
     broadcaster.sendTransform(transforms)
-    rospy.spin()
+    while not rospy.is_shutdown():
+        pub.publish(unique)
 
 
 if __name__ == "__main__":
