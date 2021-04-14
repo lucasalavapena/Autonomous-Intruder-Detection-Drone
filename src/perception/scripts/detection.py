@@ -27,7 +27,7 @@ from dd2419_detector_baseline_OG.detector import Detector
 LABELS_PATH = "src/perception/scripts/dd2419_detector_baseline_OG/dd2419_coco/annotations/training.json"
 my_path = os.path.abspath(os.path.dirname(__file__))
 MODEL_PATH = os.path.join(
-    my_path, "../models/det_2021-02-26_09-39-26-142893.pt")  # Current model
+    my_path, "../models/det_2021-04-13_10-36-30-100473.pt")  # Current model
 
 
 class image_converter:

@@ -36,3 +36,7 @@ cropped.zip
 src/.rosinstall.bak
 src/.rosinstall
 *.vscode/
+src/perception/scripts/dd2419_traffic_sign_pdfs/G6_00132_cropped.jpg
+src/perception/scripts/dd2419_traffic_sign_pdfs/G6_00132.jpg
+src/perception/scripts/feature_detection_ellidi.py
+src/perception/scripts/detection_playground.py
