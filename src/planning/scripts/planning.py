@@ -5,6 +5,7 @@ import math
 import rospy
 import tf2_ros
 from tf.transformations import euler_from_quaternion
+from nav_msgs.msg import OccupancyGrid
 import tf2_geometry_msgs
 from geometry_msgs.msg import PoseStamped
 from crazyflie_driver.msg import Position
@@ -14,7 +15,7 @@ from exploration_utils import DoraTheExplorer
 
 class PathPlanner:
 
-    def __init__(self):
+    def __init__(self, Explorer):
         self.sub_goal = rospy.Subscriber('/cf1/pose', PoseStamped, self.goal_callback)
         self.pub_cmd = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
         self.tf_buf = tf2_ros.Buffer()
@@ -25,6 +26,10 @@ class PathPlanner:
         self.current_info = None
         self.pose_map = None
         self.ERROR_TOLERANCE = 0.06
+
+        self.explorer = Explorer
+        self.occ_grid_pub = rospy.Publisher('/explorer_occ_map/', OccupancyGrid, queue_size=1)
+        self.occ_grid = OccupancyGrid()
 
     def goal_callback(self, msg):
 
@@ -37,6 +42,7 @@ class PathPlanner:
     def goal_is_met(self, goal, current_info):
         # rospy.loginfo_throttle(5, 'current_info:\n%s', current_info)
         # rospy.loginfo_throttle(5, 'goal:\n%s', goal)
+        self.occ_grid_pub =
         if (goal.x + self.ERROR_TOLERANCE > current_info.pose.position.x > goal.x - self.ERROR_TOLERANCE and
                 goal.y + self.ERROR_TOLERANCE > current_info.pose.position.y > goal.y - self.ERROR_TOLERANCE and
                 goal.z + self.ERROR_TOLERANCE > current_info.pose.position.z > goal.z - self.ERROR_TOLERANCE):
