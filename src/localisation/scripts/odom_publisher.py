@@ -89,8 +89,10 @@ def main():
         if transforms is not None:
             for t in transforms:
                 if t is not None:
+                    start_time = time.time()
                     br.sendTransform(update_time(t))
                     is_localized()
+                    print("time", time.time() - start_time)
         rate.sleep()
 
 
@@ -100,7 +102,7 @@ tf_lstn = tf2_ros.TransformListener(tf_buf)
 br = tf2_ros.TransformBroadcaster()
 sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback)
 pub = rospy.Publisher('localisation/is_localised', Bool, queue_size=10)
-tf_timeout = rospy.get_param('~tf_timeout', 0.1)
+tf_timeout = rospy.get_param('~tf_timeout', 0.5)
 frame_id = rospy.get_param('~frame_id', 'cf1/odom')
 
 

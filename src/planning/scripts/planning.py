@@ -29,7 +29,7 @@ class PathPlanner:
 
         self.explorer = Explorer
         self.occ_grid_pub = rospy.Publisher('/explorer_occ_map/', OccupancyGrid, queue_size=1)
-        self.occ_grid = OccupancyGrid()
+        self.occ_grid = None
 
     def goal_callback(self, msg):
 
@@ -42,10 +42,13 @@ class PathPlanner:
     def goal_is_met(self, goal, current_info):
         # rospy.loginfo_throttle(5, 'current_info:\n%s', current_info)
         # rospy.loginfo_throttle(5, 'goal:\n%s', goal)
-        self.occ_grid_pub =
-        if (goal.x + self.ERROR_TOLERANCE > current_info.pose.position.x > goal.x - self.ERROR_TOLERANCE and
-                goal.y + self.ERROR_TOLERANCE > current_info.pose.position.y > goal.y - self.ERROR_TOLERANCE and
-                goal.z + self.ERROR_TOLERANCE > current_info.pose.position.z > goal.z - self.ERROR_TOLERANCE):
+        # if (goal.x + self.ERROR_TOLERANCE > current_info.pose.position.x > goal.x - self.ERROR_TOLERANCE and
+        #         goal.y + self.ERROR_TOLERANCE > current_info.pose.position.y > goal.y - self.ERROR_TOLERANCE and
+        #         goal.z + self.ERROR_TOLERANCE > current_info.pose.position.z > goal.z - self.ERROR_TOLERANCE):
+        if (True):
+            self.occ_grid = self.explorer.occ_grid
+            self.occ_grid_pub.publish(self.occ_grid)
+            # Check if we need to reset our explorer here
             return True
         else:
             return False
@@ -169,6 +172,31 @@ def exploration(method="next_best_view"):
                 # print(goal)
                 i += 1
 
+def test_occ_map():
+    rospy.init_node('planning')
+    my_path = os.path.abspath(os.path.dirname(__file__))
+    file = "DA_test.world.json"
+    map_path = os.path.join(my_path, "../..", "course_packages/dd2419_resources/worlds_json", file)
+    # print(map_path)
+    Dora = DoraTheExplorer(map_path)
+    planner = PathPlanner(Dora)
+    rospy.sleep(2)
+    world_map = Map(map_path)
+    path = RRT(0, 0, 1.4, 0.8, world_map)
+    print("path", path)
+    rate = rospy.Rate(10)  # Hz
+    while not rospy.is_shutdown():
+        rate.sleep()
+        if planner.pose_map is not None:
+            x = planner.pose_map.pose.position.x
+            y = planner.pose_map.pose.position.y
+
+            next_best_point, _ = planner.explorer.generate_next_best_view((x, y))
+
+            path = RRT(x, y, next_best_point[0], next_best_point[1], world_map)
+            rospy.loginfo_throttle(5, 'Path:\n%s', path)
+            planner.goal_is_met(None, None)
+            rospy.sleep(3)
 
 
 
@@ -178,7 +206,8 @@ def main(file="planning_test_map.json"):
     file = "lucas_room_screen.json"
     map_path = os.path.join(my_path, "../..", "course_packages/dd2419_resources/worlds_json", file)
     # print(map_path)
-    planner = PathPlanner()
+
+    planner = PathPlanner(Dora)
     rospy.sleep(2)
     world_map = Map(map_path)
     path = RRT(0, 0, 1.4, 0.8, world_map)
@@ -197,4 +226,4 @@ def main(file="planning_test_map.json"):
                 i += 1
 
 if __name__ == '__main__':
-    exploration()
+    test_occ_map()
