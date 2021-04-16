@@ -111,6 +111,7 @@ class PathPlanner:
             while not self.rotation_is_met(cmd.yaw):
                 self.pub_cmd.publish(cmd)
 
+
     def publish_cmd(self, goal):
         goal.header.stamp = rospy.Time.now()
         timeout = rospy.Duration(0.5)

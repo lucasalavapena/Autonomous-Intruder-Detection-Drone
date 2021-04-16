@@ -103,14 +103,10 @@ class DoraTheExplorer:
         # 2. generate random points or all of them and check new things they can view
         best_result = [None, 0]
 
-
         for point in self.points_set:
-            print("test", point)
             if self.Map.is_passable(*point):
-                print("hu")
                 visited = self.viewable_points(point, "Test")
                 usefulness = np.sum(np.logical_or(self.visited_grid, visited))
-                print("usefulness", usefulness)
                 if usefulness > best_result[1]:
                     best_result = [point, usefulness]
 
@@ -129,7 +125,6 @@ class DoraTheExplorer:
                 plt.show()
             # 3.
             if next_point_score == prev_best:
-                print("bye", next_point_score, prev_best)
                 break
             if next_point is not None:
                 self.path.append(next_point)
