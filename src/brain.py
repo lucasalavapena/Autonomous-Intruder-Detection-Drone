@@ -27,9 +27,6 @@ def main():
     planner = planning.PathPlanner(Dora)
     world_map = planning_utils.Map(map_path)
 
-    ind = 0
-
-    path_compute = False
 
     while not rospy.is_shutdown():
         rate.sleep()
@@ -40,15 +37,10 @@ def main():
                 print("RRT start")
                 x = planner.pose_map.pose.position.x
                 y = planner.pose_map.pose.position.y
-                
-                if not path_compute:
-                    planner.explorer.update_current_position((x, y))
-                    overall_path = planner.explorer.generate_next_best_view()
-                    path_compute = True
 
+                next_best_point = planner.explorer.generate_next_best_view((x, y))
 
-
-                path = planning_utils.RRT(x, y, overall_path[ind][0], overall_path[ind][1], world_map)
+                path = planning_utils.RRT(x, y, next_best_point[0], next_best_point[1], world_map)
                 rospy.loginfo_throttle(5, 'Path:\n%s', path)
 
                 path_msg = [planner.create_msg(a, b, 0.3) for (a, b) in path]
@@ -63,15 +55,7 @@ def main():
                         rate.sleep()
                     planner.d360_yaw()
                     print("GOT TO CHECKPOINT", " goal: {} {} current:{} {}".format(planner.current_goal_odom.x,
-                                                                             planner.current_goal_odom.y,
-                                                                             planner.current_info.pose.position.x,
-                                                                            planner.current_info.pose.position.y) )
-                print("Finished point {}".format(ind))
-                ind += 1
-                print("ind {}".format(ind) )
-                if ind == len(overall_path):
-                    ind = 0
-                #print(setpoints[ind])
+
 
 
 rospy.init_node('brain')
