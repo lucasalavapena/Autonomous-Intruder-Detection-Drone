@@ -19,6 +19,9 @@ CrazyFlie_FOV = 140
 CrazyFlie_Render = 0.85 # 0.8
 
 class CrazyflieCamera:
+    """
+    Crazyflie Camera class - kinda useless tbh
+    """
     def __init__(self, FOV, render_distance):
         self.FOV = FOV #degrees
         self.render_distance = render_distance# m - distance we can see in front of us
@@ -26,7 +29,12 @@ class CrazyflieCamera:
 
 
 class DoraTheExplorer:
-    def __init__(self, map_path, current_position=None):
+    def __init__(self, map_path, discretization=0.5):
+        """
+        DoraTheExplorer constructor
+        :param map_path: path to the world.json file
+        :param discretization: discretization in m/cell
+        """
         self.Map = Map(map_path)
         self.camera = CrazyflieCamera(CrazyFlie_FOV - 20, CrazyFlie_Render)
         self.mesh_grid = None
@@ -36,10 +44,8 @@ class DoraTheExplorer:
         self.occ_grid.header.stamp = rospy.Time.now()
         # Hard-coded
 
-
-
         self.points_set = None
-        self.discretization = 0.1
+        self.discretization = discretization
         self.generate_map_occupancy()
         # self.current_position = current_position
         self.path = []
@@ -48,6 +54,10 @@ class DoraTheExplorer:
     #     self.current_position = position
 
     def generate_map_occupancy(self):
+        """
+        generates key parameters based on the map information
+        :return:
+        """
         no_x = int(math.ceil((self.Map.airspace[3] - self.Map.airspace[0]) / self.discretization)) + 1
         no_y = int(math.ceil((self.Map.airspace[4] - self.Map.airspace[1]) / self.discretization)) + 1
 
@@ -76,7 +86,21 @@ class DoraTheExplorer:
 
 
     def viewable_points(self, point, mode="Test"):
+        """
+        checks how many points are viewable from a specific point
+        :param point: point as a tuple
+        :param mode: mode to see if it should update parameters or simply check the viewability
+        :return: visited grid of sorts (either a temp one or the actual one)
+        """
         def is_neighbourhood_visited(visited_grid, number_of_idx, x_idx, y_idx):
+            """
+            checks if the neighbourhood of a point have already have been visited
+            :param visited_grid:
+            :param number_of_idx:
+            :param x_idx:
+            :param y_idx:
+            :return: boolean
+            """
             for i in range(-number_of_idx, number_of_idx + 1):
                 for j in range(-number_of_idx, number_of_idx + 1):
                     if i ** 2 + j ** 2 <= number_of_idx and 0 <= x_idx + i < visited_grid.shape[0] and 0 <= y_idx + j < visited_grid.shape[1]:
@@ -84,7 +108,7 @@ class DoraTheExplorer:
                             return False
             return True
 
-
+        # get the index of the point wrt discretised map
         for i in range(len(self.mesh_grid)):
             if self.mesh_grid[i][0][0] - self.discretization/2 <= point[0] <= self.mesh_grid[i][0][0] + self.discretization/2:
                 x_idx = i
@@ -121,6 +145,11 @@ class DoraTheExplorer:
 
 
     def generate_next_best_view(self, curr_position=None):
+        """
+        generates the next best point to visit (given your previous visit history) for a single point
+        :param curr_position: current location as a tuple
+        :return: next best location as a tuple, usefuleness score of the point
+        """
 
         # 1. decide how much we can view
         self.visited_grid = self.viewable_points(curr_position, "Current")
@@ -141,15 +170,20 @@ class DoraTheExplorer:
 
         return best_result[0], best_result[1]
 
-    def generate_best_path(self, curr_position, display=False):
+    def generate_best_path(self, curr_position, display_flag=False):
+        """
+
+        :param curr_position: current location as a tuple
+        :param display: a flag to display an image of the visited array
+        :return: path to visited the best
+        """
         prev_best = -1
-        best_result = [None, 0]
         # best_result[1] != prev_best
         while (len(self.points_set) != 0):
 
             next_point, next_point_score = self.generate_next_best_view(curr_position)
 
-            if display:
+            if display_flag:
                 plt.matshow(self.visited_grid)
                 plt.show()
             # 3.
@@ -164,6 +198,10 @@ class DoraTheExplorer:
         print("path computed")
         return self.path
 def test():
+    """
+    test Dora as a node (due to the rospy usage with the OccupancyGrid)
+    :return:
+    """
     # world_map = Map("course_packages/dd2419_resources/worlds_json/planning_test_map.json")
     rospy.init_node('Dora')
 

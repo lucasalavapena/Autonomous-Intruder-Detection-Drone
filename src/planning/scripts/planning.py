@@ -15,8 +15,8 @@ from exploration_utils import DoraTheExplorer
 import numpy as np
 
 class PathPlanner:
-    def __init__(self, Explorer):
-        self.sub_goal = rospy.Subscriber('/cf1/pose', PoseStamped, self.goal_callback)
+    def __init__(self, Explorer, error_tol=0.06):
+        self.sub_goal = rospy.Subscriber('/cf1/pose', PoseStamped, self.pose_callback)
         self.pub_cmd = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
         self.tf_buf = tf2_ros.Buffer()
         self.tf_lstn = tf2_ros.TransformListener(self.tf_buf)
@@ -25,37 +25,32 @@ class PathPlanner:
         self.current_goal_odom = None
         self.current_info = None
         self.pose_map = None
-        self.ERROR_TOLERANCE = 0.06
+        self.ERROR_TOLERANCE = error_tol
 
         self.explorer = Explorer
         self.occ_grid_pub = rospy.Publisher('/explorer_occ_map', OccupancyGrid, queue_size=2)
         self.occ_grid_pub.publish(self.explorer.occ_grid)
 
-    def goal_callback(self, msg):
+    def pose_callback(self, msg):
         """
-
-        :param msg:
+        callback for pose subsciber
+        :param msg:msg from subscriber
         :return:
         """
-
-        # rospy.loginfo_throttle(5, 'New position read:\n%s', msg)
         self.current_info = msg
-        # print(self.current_info)
-        # self.current_info.header.stamp = rospy.Time.now()
         self.convert_pose_to_map()
 
-    def goal_is_met(self, goal, current_info):
+    def goal_is_met(self, goal):
         """
-
-        :param goal:
-        :param current_info:
-        :return:
+        checks if the current goal is meet within a certain tolerance
+        :param goal: goal position
+        :return: true if the goal is met else false
         """
         # rospy.loginfo_throttle(5, 'current_info:\n%s', current_info)
         # rospy.loginfo_throttle(5, 'goal:\n%s', goal)
-        if (goal.x + self.ERROR_TOLERANCE > current_info.pose.position.x > goal.x - self.ERROR_TOLERANCE and
-                goal.y + self.ERROR_TOLERANCE > current_info.pose.position.y > goal.y - self.ERROR_TOLERANCE and
-                goal.z + self.ERROR_TOLERANCE > current_info.pose.position.z > goal.z - self.ERROR_TOLERANCE):
+        if (goal.x + self.ERROR_TOLERANCE > self.current_info.pose.position.x > goal.x - self.ERROR_TOLERANCE and
+                goal.y + self.ERROR_TOLERANCE > self.current_info.pose.position.y > goal.y - self.ERROR_TOLERANCE and
+                goal.z + self.ERROR_TOLERANCE > self.current_info.pose.position.z > goal.z - self.ERROR_TOLERANCE):
             # print("goal met")
             # print("--------"*5)
             # print("current", current_info.pose.position)
