@@ -36,7 +36,7 @@ tf_buf = tf2_ros.Buffer()
 tf_lstn = tf2_ros.TransformListener(tf_buf)
 br = tf2_ros.TransformBroadcaster()
 tf_timeout = rospy.get_param('~tf_timeout', 0.1)
-frame_id = rospy.get_param('~frame_id', 'cf1/odom')
+frame_id = rospy.get_param('~frame_id', 'cf1/camera_link')
 print("Ready")
 
 
