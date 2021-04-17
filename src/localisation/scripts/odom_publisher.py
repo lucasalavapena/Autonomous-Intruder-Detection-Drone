@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import time
 import rospy
 import tf2_ros
 import tf2_geometry_msgs
@@ -102,7 +102,7 @@ tf_lstn = tf2_ros.TransformListener(tf_buf)
 br = tf2_ros.TransformBroadcaster()
 sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback)
 pub = rospy.Publisher('localisation/is_localised', Bool, queue_size=10)
-tf_timeout = rospy.get_param('~tf_timeout', 0.5)
+tf_timeout = rospy.get_param('~tf_timeout', 0.1)
 frame_id = rospy.get_param('~frame_id', 'cf1/odom')
 
 
