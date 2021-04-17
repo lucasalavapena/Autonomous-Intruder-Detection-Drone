@@ -89,10 +89,8 @@ def main():
         if transforms is not None:
             for t in transforms:
                 if t is not None:
-                    start_time = time.time()
                     br.sendTransform(update_time(t))
                     is_localized()
-                    print("time", time.time() - start_time)
         rate.sleep()
 
 

@@ -7,6 +7,8 @@ import os.path
 import sys
 import rospy
 from nav_msgs.msg import OccupancyGrid, MapMetaData
+from geometry_msgs.msg import Pose
+
 
 import matplotlib.pyplot as plt
 import time
@@ -29,7 +31,13 @@ class DoraTheExplorer:
         self.camera = CrazyflieCamera(CrazyFlie_FOV - 20, CrazyFlie_Render)
         self.mesh_grid = None
         self.visited_grid = None
+
         self.occ_grid = OccupancyGrid()
+        self.occ_grid.header.stamp = rospy.Time.now()
+        # Hard-coded
+
+
+
         self.points_set = None
         self.discretization = 0.1
         self.generate_map_occupancy()
@@ -53,8 +61,19 @@ class DoraTheExplorer:
         self.mesh_grid = [list(product([x_value], y_values)) for x_value in x_values]
         self.points_set = set(list(product(x_values, y_values)))
         self.visited_grid = np.zeros((no_x, no_y))
-        self.occ_grid.info = MapMetaData(width=no_x, height=no_y)
+        self.occ_grid.info = MapMetaData(width=no_x, height=no_y, resolution=self.discretization,
+                                         map_load_time=rospy.Time.now())
         self.occ_grid.data = np.zeros((no_x, no_y)).ravel()
+        # Hard coded
+        self.occ_grid.info.origin = Pose()
+        self.occ_grid.info.origin.position.x = 0.0
+        self.occ_grid.info.origin.position.y = 0.0
+        self.occ_grid.info.origin.position.z = 0.0
+        self.occ_grid.info.origin.orientation.x = 0.0
+        self.occ_grid.info.origin.orientation.y = 0.0
+        self.occ_grid.info.origin.orientation.z = 0.0
+        self.occ_grid.info.origin.orientation.w = 1.0
+
 
     def viewable_points(self, point, mode="Test"):
         def is_neighbourhood_visited(visited_grid, number_of_idx, x_idx, y_idx):
@@ -105,7 +124,9 @@ class DoraTheExplorer:
 
         # 1. decide how much we can view
         self.visited_grid = self.viewable_points(curr_position, "Current")
-        self.occ_grid.data = self.visited_grid.astype("int8").ravel()
+        self.occ_grid.header.stamp = rospy.Time.now()
+        self.occ_grid.info.map_load_time = self.occ_grid.header.stamp
+        self.occ_grid.data = 100 * self.visited_grid.astype("int8").ravel()
         # 2. generate random points or all of them and check new things they can view
         best_result = [None, 0]
 
