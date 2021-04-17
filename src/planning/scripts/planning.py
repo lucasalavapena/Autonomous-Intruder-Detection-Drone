@@ -12,9 +12,9 @@ from crazyflie_driver.msg import Position
 import os.path
 from planning_utils import Map, RRT
 from exploration_utils import DoraTheExplorer
+import numpy as np
 
 class PathPlanner:
-
     def __init__(self, Explorer):
         self.sub_goal = rospy.Subscriber('/cf1/pose', PoseStamped, self.goal_callback)
         self.pub_cmd = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
@@ -28,10 +28,15 @@ class PathPlanner:
         self.ERROR_TOLERANCE = 0.06
 
         self.explorer = Explorer
-        self.occ_grid_pub = rospy.Publisher('/explorer_occ_map/', OccupancyGrid, queue_size=1)
-        self.occ_grid = None
+        self.occ_grid_pub = rospy.Publisher('/explorer_occ_map', OccupancyGrid, queue_size=2)
+        self.occ_grid_pub.publish(self.explorer.occ_grid)
 
     def goal_callback(self, msg):
+        """
+
+        :param msg:
+        :return:
+        """
 
         # rospy.loginfo_throttle(5, 'New position read:\n%s', msg)
         self.current_info = msg
@@ -40,19 +45,34 @@ class PathPlanner:
         self.convert_pose_to_map()
 
     def goal_is_met(self, goal, current_info):
-        rospy.loginfo_throttle(5, 'current_info:\n%s', current_info)
-        rospy.loginfo_throttle(5, 'goal:\n%s', goal)
+        """
+
+        :param goal:
+        :param current_info:
+        :return:
+        """
+        # rospy.loginfo_throttle(5, 'current_info:\n%s', current_info)
+        # rospy.loginfo_throttle(5, 'goal:\n%s', goal)
         if (goal.x + self.ERROR_TOLERANCE > current_info.pose.position.x > goal.x - self.ERROR_TOLERANCE and
                 goal.y + self.ERROR_TOLERANCE > current_info.pose.position.y > goal.y - self.ERROR_TOLERANCE and
                 goal.z + self.ERROR_TOLERANCE > current_info.pose.position.z > goal.z - self.ERROR_TOLERANCE):
-            self.occ_grid = self.explorer.occ_grid
-            self.occ_grid_pub.publish(self.occ_grid)
-            # Check if we need to reset our explorer here
+            # print("goal met")
+            # print("--------"*5)
+            # print("current", current_info.pose.position)
+            # print("goal", goal)
+            # print("--------"*5)
             return True
         else:
             return False
 
     def create_msg(self, x, y, z):
+        """
+        creates a posestamped message to be used for setting set points
+        :param x:
+        :param y:
+        :param z:
+        :return:
+        """
         msg = PoseStamped()
         msg.header.frame_id = 'map'
         msg.pose.position.x = x
@@ -65,6 +85,10 @@ class PathPlanner:
         return msg
 
     def convert_pose_to_map(self):
+        """
+        converts the odom pose to a map pose (mainly used for planning purposes)
+        :return:
+        """
         timeout = rospy.Duration(0.25)
         while not self.tf_buf.can_transform(self.current_info.header.frame_id, 'map', self.current_info.header.stamp, timeout):
             rospy.logwarn_throttle(5.0, 'hello there..No transform from %s to map' % self.current_info.header.frame_id)
@@ -73,7 +97,7 @@ class PathPlanner:
 
     def rotation_is_met(self, target_yaw, error_d_tol=7.5):
         """
-
+        checks if a target rotation is met
         :param target_yaw:
         :param error_d_tol: error tolerance for yaw in degrees
         :return:
@@ -84,14 +108,28 @@ class PathPlanner:
                                            self.current_info.pose.orientation.w))
 
         actual_yaw_d = math.degrees(actual_yaw) % 360
-        rospy.loginfo_throttle(5, "actual angles: %f target angle: %f", actual_yaw_d, target_yaw)
+        # rospy.loginfo_throttle(5, "actual angles: %f target angle: %f", actual_yaw_d, target_yaw)
 
         if ( actual_yaw_d + error_d_tol > target_yaw > actual_yaw_d - error_d_tol):
             return True
         else:
             return False
 
+    def publish_occ(self):
+        """
+        publish the occupancy grid and checks
+        :return:
+        """
+        self.occ_grid_pub.publish(self.explorer.occ_grid)
+        # Check if we need to reset our explorer here
+        if np.sum(self.explorer.occ_grid.data != 0) / float(self.explorer.occ_grid.data.size) > 0.95:
+            self.explorer.generate_map_occupancy()
+
     def d360_yaw(self):
+        """
+        360 degree yaw ie a whole rotation to see the entire surroundings of the map
+        :return:
+        """
         cmd = Position()
 
         cmd.x = self.current_info.pose.position.x
@@ -106,7 +144,7 @@ class PathPlanner:
         initial_yaw = math.degrees(initial_yaw)
 
 
-        delta_yaw = [45 * i for i in range(1, 8)]
+        delta_yaw = [30 * i for i in range(1, 12)] # every 30 degrees so that we are careful, our fov is actully 140
 
         for d_yaw in delta_yaw:
             cmd.yaw = (initial_yaw + d_yaw) % 360
@@ -114,7 +152,13 @@ class PathPlanner:
                 self.pub_cmd.publish(cmd)
 
 
+
     def publish_cmd(self, goal):
+        """
+        publishes goal position command
+        :param goal: goal (pose) in map to be transfer to odom
+        :return:
+        """
         goal.header.stamp = rospy.Time.now()
         timeout = rospy.Duration(0.5)
 
@@ -251,4 +295,4 @@ def main(file="planning_test_map.json"):
                 i += 1
 
 if __name__ == '__main__':
-    transform_test()
+    test_occ_map()

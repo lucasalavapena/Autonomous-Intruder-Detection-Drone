@@ -26,27 +26,32 @@ def main():
     planner = planning.PathPlanner(Dora)
     world_map = planning_utils.Map(map_path)
 
+    rospy.sleep(5) # to one time to record the bag and prepare
+    has_taken_off = False
 
     while not rospy.is_shutdown():
         rate.sleep()
         if is_localised:
             if planner.pose_map is not None:
-                
                 print("RRT start")
                 x = planner.pose_map.pose.position.x
                 y = planner.pose_map.pose.position.y
 
+                planner.publish_occ() # publishes occupancy grid
                 next_best_point, _ = planner.explorer.generate_next_best_view((x, y))
 
                 path = planning_utils.RRT(x, y, next_best_point[0], next_best_point[1], world_map)
                 rospy.loginfo_throttle(5, 'Path:\n%s', path)
 
                 path_msg = [planner.create_msg(a, b, 0.3) for (a, b) in path]
-                print("are you ready to rumble on your marks get set go")
+
+                # First it should always go straight up to make it easy for it
+                if not has_taken_off:
+                    path_msg.insert(0, planner.create_msg(x, y, 0.3))
+                    has_taken_off = True
+
                 for pnt in path_msg:
-                    print("lets publish")
                     planner.publish_cmd(pnt)
-                    rospy.loginfo_throttle(5, 'map loc:\n%s %s', planner.pose_map.pose.position.x, planner.pose_map.pose.position.y)
 
                     while not planner.goal_is_met(planner.current_goal_odom, planner.current_info):
                         planner.publish_cmd(pnt)

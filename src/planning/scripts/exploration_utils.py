@@ -61,7 +61,7 @@ class DoraTheExplorer:
         self.mesh_grid = [list(product([x_value], y_values)) for x_value in x_values]
         self.points_set = set(list(product(x_values, y_values)))
         self.visited_grid = np.zeros((no_x, no_y))
-        self.occ_grid.info = MapMetaData(width=no_x, height=no_y, resolution=self.discretization,
+        self.occ_grid.info = MapMetaData(width=no_y, height=no_x, resolution=self.discretization,
                                          map_load_time=rospy.Time.now())
         self.occ_grid.data = np.zeros((no_x, no_y)).ravel()
         # Hard coded
@@ -126,7 +126,9 @@ class DoraTheExplorer:
         self.visited_grid = self.viewable_points(curr_position, "Current")
         self.occ_grid.header.stamp = rospy.Time.now()
         self.occ_grid.info.map_load_time = self.occ_grid.header.stamp
+        # print(self.visited_grid)
         self.occ_grid.data = 100 * self.visited_grid.astype("int8").ravel()
+        # print(self.occ_grid.data, self.occ_grid.data.shape)
         # 2. generate random points or all of them and check new things they can view
         best_result = [None, 0]
 
@@ -163,11 +165,13 @@ class DoraTheExplorer:
         return self.path
 def test():
     # world_map = Map("course_packages/dd2419_resources/worlds_json/planning_test_map.json")
+    rospy.init_node('Dora')
+
     my_path = os.path.abspath(os.path.dirname(__file__))
     file = "dora_adventure_map.world.json" #"lucas_room_screen.world.json"
     map_path = os.path.join(my_path, "../..", "course_packages/dd2419_resources/worlds_json", file)
     Dora = DoraTheExplorer(map_path)
-    print(Dora.generate_best_path((0.5, 0.3), False))
+    print(Dora.generate_best_path((0.5, 0.3), True))
 if __name__ == "__main__":
     test()
 

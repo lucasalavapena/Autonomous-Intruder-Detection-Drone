@@ -11,7 +11,7 @@ from itertools import product
 
 # for test
 # random.seed(19)
-DRONE_MAX_SIDE = 0.2
+DRONE_MAX_SIDE = 0.225
 
 def RRT(curr_x, curr_y, goal_x, goal_y, Map):
     """
@@ -138,7 +138,7 @@ class Node:
 
 # The class representing the room and its limits
 class Map:
-    def __init__(self, map_path, expansion_factor=0.1):
+    def __init__(self, map_path, expansion_factor=0.15):
         self.obstacles = []
         self.airspace = None
         self.mesh_grid = None
