@@ -26,7 +26,8 @@ def feature_detection(img):
 
     # find the keypoints and descriptors with SIFT
     kp_sift, des_sift = sift.detectAndCompute(img, None)
-
+    sift_data = [(p.pt, p.size, p.angle, p.response, p.octave,
+                  p.class_id, d) for p, d in zip(kp_sift, des_sift)]
 
     # ---------- ORB ----------
     # Initiate SIFT detector
@@ -34,6 +35,8 @@ def feature_detection(img):
 
     # find the keypoints and descriptors with SIFT
     kp_orb, des_orb = orb.detectAndCompute(img, None)
+    orb_data = [(p.pt, p.size, p.angle, p.response, p.octave,
+                p.class_id, d) for p, d in zip(kp_orb, des_orb)]
 
 
     # ---------- SURF ----------
@@ -42,24 +45,33 @@ def feature_detection(img):
 
     # find the keypoints and descriptors with SIFT
     kp_surf, des_surf = surf.detectAndCompute(img, None)
+    surf_data = [(p.pt, p.size, p.angle, p.response, p.octave,
+                p.class_id, d) for p, d in zip(kp_surf, des_surf)]
 
 
-    # ---------- BRIEF ----------
-    # Initiate SIFT detector
-    star = cv.xfeatures2d.StarDetector_create()
-    brief = cv.xfeatures2d.BriefDescriptorExtractor_create()
+    # # ---------- BRIEF ----------
+    # # Initiate SIFT detector
+    # star = cv.xfeatures2d.StarDetector_create()
+    # brief = cv.xfeatures2d.BriefDescriptorExtractor_create()
 
-    # find the keypoints with STAR
-    kp_brief = star.detect(img, None)
+    # # find the keypoints with STAR
+    # kp_brief = star.detect(img, None)
 
-    # compute the descriptors with BRIEF
-    kp_brief, des_brief = brief.compute(img, kp_brief)
+    # # compute the descriptors with BRIEF
+    # kp_brief, des_brief = brief.compute(img, kp_brief)
+    # if len(kp_brief) != 0: # BRIEF SOMETIMES BAD WATCH OUT WHEN USING
+    #     brief_data = [(p.pt, p.size, p.angle, p.response, p.octave,
+    #                 p.class_id, d) for p, d in zip(kp_brief, des_brief)]
+    # else:
+    #     brief_data = None
 
     keypoints = {
-        'SIFT': {'kp': kp_sift, 'des': des_sift},
-        'SURF': {'kp': kp_surf, 'des': des_surf},
-        'ORB': {'kp': kp_orb, 'des': des_orb},
-        'BRIEF': {'kp': kp_brief, 'des': des_brief}
+        'IMAGE': img,
+        'CENTER': (img.shape[0] / 2, img.shape[1] / 2),
+        'SIFT': sift_data, #{'kp': kp_sift, 'des': des_sift},
+        'SURF': surf_data, #{'kp': kp_surf, 'des': des_surf},
+        'ORB': orb_data #{'kp': kp_orb, 'des': des_orb},
+        #'BRIEF': brief_data, #{'kp': kp_brief, 'des': des_brief}
     }
 
     return keypoints
