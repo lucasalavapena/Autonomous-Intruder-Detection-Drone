@@ -190,6 +190,23 @@ def transform_stamped_to_pq(msg):
     """
     return transform_to_pq(msg.transform)
 
+def separate_quaternions_tf(t):
+    q_t = [0] * 4
+    q_t[0] = t.transform.rotation.x
+    q_t[1] = t.transform.rotation.y
+    q_t[2] = t.transform.rotation.z
+    q_t[3] = t.transform.rotation.w
+    return q_t
+
+
+def separate_quaternions_marker(m):
+    q = [0] * 4
+    q[0] = m.pose.orientation.x
+    q[1] = m.pose.orientation.y
+    q[2] = m.pose.orientation.z
+    q[3] = m.pose.orientation.w
+    return q
+
 
 def update_time(t):
     t.header.stamp = rospy.Time.now()
