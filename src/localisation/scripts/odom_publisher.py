@@ -19,8 +19,8 @@ def marker_callback(msg):
     #is_localized()
     for m in msg.markers:
         if m.id == unique_id:
-            marker_name = "aruco/marker" + str(m.id)
-            transforms.append(broadcast_transform(m, marker_name))
+            marker_name_extension = str(m.id)
+            transforms.append(broadcast_transform(m, marker_name_extension))
         else:
             transforms.append(data_association(m))
         if len(transforms) > 2:
@@ -32,43 +32,40 @@ def unique_callback(msg):
     unique_id = msg.data
 
 
-def broadcast_transform(m, marker_name):
+def broadcast_transform(m, marker_name_extension):
     # Find transform of pose of detected marker in odom
-    if not tf_buf.can_transform(m.header.frame_id, frame_id, m.header.stamp, rospy.Duration(tf_timeout)):
-        rospy.logwarn_throttle(5.0, '%s: No transform from %s to %s', rospy.get_name(), m.header.frame_id, frame_id)
+    try:
+        detected = tf_buf.lookup_transform('aruco/detected' + marker_name_extension, 'cf1/odom', m.header.stamp, rospy.Duration(tf_timeout))
+    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+        print('odom_publisher.broadcast_transform(detected lookup): ', e)
         return
-    detected = tf_buf.transform(PoseStamped(header=m.header, pose=m.pose.pose), 'cf1/odom')
-    trans_detected, rot_detected = pose_stamped_to_pq(detected)
+    trans_detected, rot_detected = transform_stamped_to_pq(detected)
 
     # Find transform of pose of static marker in map
     try:
-        t_map = tf_buf.lookup_transform(marker_name, 'map', m.header.stamp, rospy.Duration(tf_timeout))
-    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+        t_map = tf_buf.lookup_transform('map', 'aruco/marker' + marker_name_extension, m.header.stamp, rospy.Duration(tf_timeout))
+    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+        print('odom_publisher.broadcast_transform(marker lookup): ', e)
         return
     trans_map, rot_map = transform_stamped_to_pq(t_map)
 
     # Calculate resulting rotation between map and odom
     # Change the detected marker in to 4x4 matrices and combine them
-    trans_detected_mat = translation_matrix(trans_detected)
-    rot_detected_mat = quaternion_matrix(rot_detected)
-    detected_mat = np.dot(trans_detected_mat, rot_detected_mat)
+    detected_mat = np.dot(translation_matrix(trans_detected), quaternion_matrix(rot_detected))
 
     # Change the map marker in to 4x4 matrices and combine them
-    trans_map_mat = translation_matrix(trans_map)
-    rot_map_mat = quaternion_matrix(rot_map)
-    map_mat = np.dot(trans_map_mat, rot_map_mat)
+    map_mat = np.dot(translation_matrix(trans_map), quaternion_matrix(rot_map))
 
     # Calculate resulting 4x4 matrix, separate in to 2 matrices
-    result_mat = np.dot(detected_mat, map_mat)
+    result_mat = np.dot(map_mat, detected_mat)
     trans_result = translation_from_matrix(result_mat)
     rot_result = quaternion_from_matrix(result_mat)
-
 
     # Create new message with time stamps and frames
     t = TransformStamped()
     t.header = m.header
     t.header.frame_id = 'map'
-    t.child_frame_id = frame_id
+    t.child_frame_id = 'cf1/odom'
 
     (t.transform.translation.x,
      t.transform.translation.y,
@@ -85,25 +82,18 @@ def broadcast_transform(m, marker_name):
     return t
 
 
-def make_transformstamped(pose, child_frame_id):
-    t = TransformStamped()
-    t.header = pose.header
-    t.child_frame_id = child_frame_id
-    t.transform.translation = pose.pose.position
-    t.transform.rotation = pose.pose.orientation
-    return t.transform.translation, t.transform.rotation
-
-
 def data_association(m):
     best_marker = None
     best_delta = 100
 
     # Find transform of pose of detected marker in map
     try:
-        detected_map = tf_buf.lookup_transform('map', "aruco/detected" + str(m.id), m.header.stamp, rospy.Duration(tf_timeout))
+        detected = tf_buf.lookup_transform('map', "aruco/detected" + str(m.id), m.header.stamp, rospy.Duration(tf_timeout))
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-        print(e)
+        print('odom_publisher.data_association: ', e)
         return
+    trans_detected, rot_detected = transform_stamped_to_pq(detected)
+    detected_mat = np.dot(translation_matrix(trans_detected), quaternion_matrix(rot_detected))
 
     more_markers = True
     n = 0
@@ -114,31 +104,29 @@ def data_association(m):
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
             print(e)
             break
+        trans_map, rot_map = transform_stamped_to_pq(t_map)
+        map_mat = np.dot(translation_matrix(trans_map), quaternion_matrix(rot_map))
 
         # Compare positions and orientations of detected vs map markers
+        result_mat = np.dot(map_mat, detected_mat)
+        trans_result = translation_from_matrix(result_mat)
+        rot_result = quaternion_from_matrix(result_mat)
+
+        d_roll, d_pitch, d_yaw = euler_from_quaternion(rot_result)
         orientation_error = 30
-
-        q_map = separate_quaternions_tf(t_map)
-        q_det = separate_quaternions_tf(detected_map)
-        q_det[3] = -q_det[3]
-        # Calculate resulting rotation between map and odom
-        q_r = quaternion_multiply(q_map, q_det)
-        d_roll, d_pitch, d_yaw = euler_from_quaternion((q_r[0], q_r[1], q_r[2], q_r[3]))
-        delta = np.sqrt(d_roll**2 + d_pitch**2 + d_yaw**2)
-        #print(delta)
-
-        if np.abs(d_roll) <= orientation_error and np.abs(d_pitch) <= orientation_error and np.abs(d_yaw) <= orientation_error:
+        if np.abs(d_yaw) <= orientation_error:
+            delta = np.linalg.norm(trans_result)
             if best_marker is None:
                 best_marker = t_map
                 best_delta = delta
-                marker_name = "aruco/marker" + str(m.id) + '_' + str(n)
+                marker_name_extension = str(m.id) + '_' + str(n)
             elif delta < best_delta:
                 best_marker = t_map
                 best_delta = delta
-                marker_name = "aruco/marker" + str(m.id) + '_' + str(n)
+                marker_name_extension = str(m.id) + '_' + str(n)
         n += 1
     print(best_marker)
-    return broadcast_transform(m, marker_name)
+    return broadcast_transform(m, marker_name_extension)
 
 
 def pose_to_pq(msg):
@@ -226,6 +214,7 @@ def main():
         rate.sleep()
 
 
+print('Starting...')
 rospy.init_node('odom_publisher')
 tf_buf = tf2_ros.Buffer()
 tf_lstn = tf2_ros.TransformListener(tf_buf)
@@ -233,8 +222,8 @@ br = tf2_ros.TransformBroadcaster()
 sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback)
 sub_unique = rospy.Subscriber('/marker/unique', Int16, unique_callback)
 pub = rospy.Publisher('localisation/is_localised', Bool, queue_size=10)
-tf_timeout = rospy.get_param('~tf_timeout', 0.5)
-frame_id = rospy.get_param('~frame_id', 'cf1/odom')
+tf_timeout = rospy.get_param('~tf_timeout', 0.1)
+print('Ready')
 
 
 if __name__ == '__main__':
