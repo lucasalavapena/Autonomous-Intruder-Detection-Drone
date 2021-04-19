@@ -94,6 +94,7 @@ def broadcast_transform(m, marker_name_extension):
 def data_association(m):
     start = time.time()
     best_marker = None
+    marker_name_extension = 'None found'
     best_delta = 100
     best_yaw = 100
 
