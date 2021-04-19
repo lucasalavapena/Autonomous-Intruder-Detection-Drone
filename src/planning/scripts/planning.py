@@ -141,10 +141,16 @@ class PathPlanner:
 
         delta_yaw = [30 * i for i in range(1, 12)] # every 30 degrees so that we are careful, our fov is actully 140
 
-        for d_yaw in delta_yaw:
+        for i, d_yaw in enumerate(delta_yaw):
             cmd.yaw = (initial_yaw + d_yaw) % 360
-            while not self.rotation_is_met(cmd.yaw):
+            start = rospy.get_rostime()
+            until = (start + rospy.Duration(0.1))
+            if i % 3 == 0:
+                until = (start + rospy.Duration(1))
+            while not(self.rotation_is_met(cmd.yaw) and rospy.get_rostime() > until):
+                # rospy.loginfo_throttle(0.2, "curr: %d until: %d", rospy.get_rostime().secs, until.secs)
                 self.pub_cmd.publish(cmd)
+
 
 
 

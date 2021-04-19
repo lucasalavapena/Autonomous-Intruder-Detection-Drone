@@ -56,7 +56,8 @@ def main():
                     while not planner.goal_is_met(planner.current_goal_odom):
                         planner.publish_cmd(pnt)
                         rate.sleep()
-                    planner.d360_yaw()
+                planner.d360_yaw()
+                print("")
 
 
 rospy.init_node('brain')
