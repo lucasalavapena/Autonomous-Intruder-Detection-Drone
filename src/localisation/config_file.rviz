@@ -114,13 +114,23 @@ Visualization Manager:
       Namespaces:
         airspace: true
         airspace_text: true
-        ground: true
+        ground: false
         markers: true
         markers_text: true
         signs: true
         signs_text: true
         walls: true
       Queue Size: 100
+      Value: true
+    - Alpha: 0.699999988079071
+      Class: rviz/Map
+      Color Scheme: costmap
+      Draw Behind: false
+      Enabled: true
+      Name: Map
+      Topic: "explorer_occ_map"
+      Unreliable: false
+      Use Timestamp: false
       Value: true
   Enabled: true
   Global Options:

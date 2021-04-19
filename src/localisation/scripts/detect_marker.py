@@ -13,20 +13,14 @@ def marker_callback(msg):
 
 
 def broadcast_marker_transform(m):
-    rospy.sleep(0.1)
 
-    if not tf_buf.can_transform(frame_id, m.header.frame_id, m.header.stamp, rospy.Duration(tf_timeout)):
-        rospy.logwarn_throttle(5.0, 'No transform from %s to %s', m.header.frame_id, frame_id)
-        return
+    test = TransformStamped()
+    test.header = m.header
+    test.child_frame_id = 'aruco/detected' + str(m.id)
+    test.transform.translation = m.pose.pose.position
+    test.transform.rotation = m.pose.pose.orientation
 
-    marker = tf_buf.transform(PoseStamped(header=m.header, pose=m.pose.pose), frame_id)
-
-    t = TransformStamped()
-    t.header = marker.header
-    t.child_frame_id = 'aruco/detected' + str(m.id)
-    t.transform = Transform(translation=marker.pose.position, rotation=marker.pose.orientation)
-
-    br.sendTransform(t)
+    br.sendTransform(test)
 
 
 print("Starting...")
@@ -36,7 +30,7 @@ tf_buf = tf2_ros.Buffer()
 tf_lstn = tf2_ros.TransformListener(tf_buf)
 br = tf2_ros.TransformBroadcaster()
 tf_timeout = rospy.get_param('~tf_timeout', 0.1)
-frame_id = rospy.get_param('~frame_id', 'cf1/odom')
+frame_id = rospy.get_param('~frame_id', 'cf1/camera_link')
 print("Ready")
 
 
