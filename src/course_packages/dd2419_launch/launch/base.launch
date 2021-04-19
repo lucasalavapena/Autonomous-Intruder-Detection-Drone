@@ -116,7 +116,7 @@
 
   <!-- Localisation nodes -->
   <node pkg="localisation" type="odom_publisher.py" name="odom_publisher" output="screen"/>
-  <!-- <node pkg="localisation" type="is_localized_publisher.py" name="is_localized_publisher" /> -->
+  <node pkg="localisation" type="is_localized_publisher.py" name="is_localized_publisher" />
   <node pkg="localisation" type="detect_marker.py" name="detect_marker" />
 
 </launch>
