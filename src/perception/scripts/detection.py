@@ -60,10 +60,10 @@ class image_converter:
         # Initializing different feature detectors
         self.feature_detector = {
             "SIFT": cv2.xfeatures2d.SIFT_create(),
-            "SURF": cv2.xfeatures2d.SURF_create(500),  # 500
+            "SURF": cv2.xfeatures2d.SURF_create(),  # 500
             "ORB": cv2.ORB_create(),
-            "STAR": cv2.xfeatures2d.StarDetector_create(),
-            "BRIEF": cv2.xfeatures2d.BriefDescriptorExtractor_create(),
+            # "STAR": cv2.xfeatures2d.StarDetector_create(),
+            # "BRIEF": cv2.xfeatures2d.BriefDescriptorExtractor_create(),
             "MATCHER": cv2.BFMatcher()
         }
 
@@ -172,7 +172,7 @@ class image_converter:
         # Apply ratio test
         good = []
         for m, n in matches:
-            if m.distance < 0.60 * n.distance:
+            if m.distance < 0.55 * n.distance:
                 good.append([m])
 
         if display_result:

@@ -1,7 +1,9 @@
 import os
 import pickle
 import cv2 as cv
+import matplotlib.pyplot as plt
 
+SCALING_FACTOR = 0.3333
 DRONE_IMAGE_RATIO = (640, 480)
 MY_PATH = os.path.abspath(os.path.dirname(__file__))
 
@@ -10,7 +12,6 @@ def image_preprocessing(img_path):
     img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
     # Resizeing images
-    SCALING_FACTOR = 0.3333
     dsize = (int(round(DRONE_IMAGE_RATIO[0] * SCALING_FACTOR)), int(round(DRONE_IMAGE_RATIO[1] * SCALING_FACTOR)))
     img = cv.resize(img, dsize, interpolation=cv.INTER_AREA)
 
@@ -30,7 +31,7 @@ def feature_detection(img):
                   p.class_id, d) for p, d in zip(kp_sift, des_sift)]
 
     # ---------- ORB ----------
-    # Initiate SIFT detector
+    # Initiate ORB detector
     orb = cv.ORB_create() # 500, 1.2, 8, 31, 0, 2
 
     # find the keypoints and descriptors with SIFT
@@ -40,8 +41,8 @@ def feature_detection(img):
 
 
     # ---------- SURF ----------
-    # Initiate SIFT detector
-    surf = cv.xfeatures2d.SURF_create(100, 12, 12, False, False)
+    # Initiate SURF detector
+    surf = cv.xfeatures2d.SURF_create()
 
     # find the keypoints and descriptors with SIFT
     kp_surf, des_surf = surf.detectAndCompute(img, None)
@@ -50,7 +51,6 @@ def feature_detection(img):
 
 
     # # ---------- BRIEF ----------
-    # # Initiate SIFT detector
     # star = cv.xfeatures2d.StarDetector_create()
     # brief = cv.xfeatures2d.BriefDescriptorExtractor_create()
 
