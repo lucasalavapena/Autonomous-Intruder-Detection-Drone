@@ -120,6 +120,6 @@
   <node pkg="localisation" type="detect_marker.py" name="detect_marker" />
 
   <!-- Utility nodes -->
-  <node pkg="utilities" type="battery_check.py" name="battery_check" />
+  <node pkg="utilities" type="battery_check.py" name="battery_check" output="screen"/>
 
 </launch>
