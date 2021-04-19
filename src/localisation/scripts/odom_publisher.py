@@ -33,6 +33,7 @@ def marker_callback(msg):
                 transforms.append(result)
         if len(transforms) > 2:
             transforms.pop(0)
+        #print('transforms: ' + str(transforms))
 
 
 def unique_callback(msg):
@@ -124,7 +125,7 @@ def data_association(m):
 
         d_roll, d_pitch, d_yaw = euler_from_quaternion(rot_result)
         orientation_error = 3.1415926/6
-        print()
+        #print()
         if np.abs(d_yaw) <= orientation_error:
             delta = np.linalg.norm(trans_result)
             print("delta_norm for {} is {};\n yaw info: best {} curr {}".format(str(m.id) + '_' + str(n), delta, best_yaw, d_yaw))
@@ -138,12 +139,12 @@ def data_association(m):
                 best_delta = delta
                 best_yaw = d_yaw
                 marker_name_extension = str(m.id) + '_' + str(n)
-        else:
-            return None
         n += 1
-    #print(best_marker)
+    print('best: ' + marker_name_extension)
     # end = time.time()
     # print(end-start)
+    if best_delta == 100 or best_yaw == 100:
+        return None
     return broadcast_transform(m, marker_name_extension)
 
 
