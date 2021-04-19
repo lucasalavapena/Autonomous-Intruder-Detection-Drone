@@ -3,7 +3,6 @@ import time
 import rospy
 import tf2_ros
 import tf2_geometry_msgs
-import time
 import numpy as np
 from aruco_msgs.msg import MarkerArray
 from geometry_msgs.msg import TransformStamped
