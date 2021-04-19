@@ -53,7 +53,7 @@ def main():
                 for pnt in path_msg:
                     planner.publish_cmd(pnt)
 
-                    while not planner.goal_is_met(planner.current_goal_odom, planner.current_info):
+                    while not planner.goal_is_met(planner.current_goal_odom):
                         planner.publish_cmd(pnt)
                         rate.sleep()
                     planner.d360_yaw()
