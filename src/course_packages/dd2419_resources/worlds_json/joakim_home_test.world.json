@@ -1,0 +1,26 @@
+{
+
+  "airspace": {
+    "min": [0, 0, 0.0],
+    "max": [ 2.45,  2.0, 2.5]
+  },
+
+  "gate_size": [0.40, 0.40],
+  "marker_size": [0.175, 0.175],
+  "roadsign_size": [0.19, 0.19],
+
+  "markers": [
+    {"id": 7, "pose": {"position": [0.0, 0.0, 0.0], "orientation": [0.0, 0.0, 0.0]}}
+  ],
+
+  "walls": [
+  ],
+
+  "roadsigns": [
+  ],
+
+  "gates": []
+
+}
+
+
