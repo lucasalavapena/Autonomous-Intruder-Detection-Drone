@@ -116,4 +116,7 @@
   <node pkg="localisation" type="odom_publisher.py" name="odom_publisher" />
   <!-- <node pkg="localisation" type="is_localized_publisher.py" name="is_localized_publisher" /> -->
 
+  <!-- Utility nodes -->
+  <node pkg="utilities" type="battery_check.py" name="battery_check" />
+
 </launch>
