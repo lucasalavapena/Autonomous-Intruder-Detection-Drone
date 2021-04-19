@@ -28,7 +28,9 @@ def marker_callback(msg):
             marker_name_extension = str(m.id)
             transforms.append(broadcast_transform(m, marker_name_extension))
         else:
-            transforms.append(data_association(m))
+            result = data_association(m)
+            if result:
+                transforms.append(result)
         if len(transforms) > 2:
             transforms.pop(0)
 
@@ -49,7 +51,7 @@ def broadcast_transform(m, marker_name_extension):
 
     # Find transform of pose of static marker in map
     try:
-        t_map = tf_buf.lookup_transform('map', 'aruco/marker' + marker_name_extension, m.header.stamp, rospy.Duration(tf_timeout))
+        t_map = tf_buf.lookup_transform('map', 'aruco/marker' + marker_name_extension, m.header.stamp)
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
         print('odom_publisher.broadcast_transform(marker lookup): ', e)
         return
@@ -96,7 +98,7 @@ def data_association(m):
 
     # Find transform of pose of detected marker in map
     try:
-        detected = tf_buf.lookup_transform('map', "aruco/detected" + str(m.id), m.header.stamp, rospy.Duration(tf_timeout))
+        detected = tf_buf.lookup_transform("aruco/detected" + str(m.id), 'map',  m.header.stamp, rospy.Duration(tf_timeout))
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
         print('odom_publisher.data_association: ', e)
         return
@@ -108,7 +110,7 @@ def data_association(m):
     while more_markers:
         # Find transform of pose of static marker in map
         try:
-            t_map = tf_buf.lookup_transform('map', "aruco/marker" + str(m.id) + '_' + str(n), m.header.stamp, rospy.Duration(tf_timeout))
+            t_map = tf_buf.lookup_transform('map', "aruco/marker" + str(m.id) + '_' + str(n), m.header.stamp)
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
             print(e)
             break
@@ -121,23 +123,27 @@ def data_association(m):
         rot_result = quaternion_from_matrix(result_mat)
 
         d_roll, d_pitch, d_yaw = euler_from_quaternion(rot_result)
-        orientation_error = 30
-        #if np.abs(d_yaw) <= orientation_error:
-        delta = np.linalg.norm(trans_result)
-        if best_marker is None:
-            best_marker = t_map
-            best_delta = delta
-            best_yaw = d_yaw
-            marker_name_extension = str(m.id) + '_' + str(n)
-        elif delta < best_delta and d_yaw < best_yaw:
-            best_marker = t_map
-            best_delta = delta
-            best_yaw = d_yaw
-            marker_name_extension = str(m.id) + '_' + str(n)
+        orientation_error = 3.1415926/6
+        print()
+        if np.abs(d_yaw) <= orientation_error:
+            delta = np.linalg.norm(trans_result)
+            print("delta_norm for {} is {};\n yaw info: best {} curr {}".format(str(m.id) + '_' + str(n), delta, best_yaw, d_yaw))
+            if best_marker is None:
+                best_marker = t_map
+                best_delta = delta
+                best_yaw = d_yaw
+                marker_name_extension = str(m.id) + '_' + str(n)
+            elif d_yaw < best_yaw:
+                best_marker = t_map
+                best_delta = delta
+                best_yaw = d_yaw
+                marker_name_extension = str(m.id) + '_' + str(n)
+        else:
+            return None
         n += 1
     #print(best_marker)
-    end = time.time()
-    print(end-start)
+    # end = time.time()
+    # print(end-start)
     return broadcast_transform(m, marker_name_extension)
 
 
