@@ -3,11 +3,17 @@
 import rospy
 import tf2_ros
 import tf2_geometry_msgs
+import time
 import numpy as np
-from tf.transformations import quaternion_multiply, euler_from_quaternion, quaternion_from_euler, translation_matrix, quaternion_matrix, translation_from_matrix, quaternion_from_matrix
 from aruco_msgs.msg import MarkerArray
-from geometry_msgs.msg import PoseStamped, TransformStamped, Quaternion
+from geometry_msgs.msg import TransformStamped
 from std_msgs.msg import Bool, Int16
+from tf.transformations import euler_from_quaternion,       \
+                                quaternion_from_euler,      \
+                                translation_matrix,         \
+                                quaternion_matrix,          \
+                                translation_from_matrix,    \
+                                quaternion_from_matrix
 
 
 transforms = []
@@ -35,7 +41,7 @@ def unique_callback(msg):
 def broadcast_transform(m, marker_name_extension):
     # Find transform of pose of detected marker in odom
     try:
-        detected = tf_buf.lookup_transform('aruco/detected' + marker_name_extension, 'cf1/odom', m.header.stamp, rospy.Duration(tf_timeout))
+        detected = tf_buf.lookup_transform('aruco/detected' + str(m.id), 'cf1/odom', m.header.stamp, rospy.Duration(tf_timeout))
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
         print('odom_publisher.broadcast_transform(detected lookup): ', e)
         return
@@ -83,8 +89,10 @@ def broadcast_transform(m, marker_name_extension):
 
 
 def data_association(m):
+    start = time.time()
     best_marker = None
     best_delta = 100
+    best_yaw = 100
 
     # Find transform of pose of detected marker in map
     try:
@@ -114,18 +122,22 @@ def data_association(m):
 
         d_roll, d_pitch, d_yaw = euler_from_quaternion(rot_result)
         orientation_error = 30
-        if np.abs(d_yaw) <= orientation_error:
-            delta = np.linalg.norm(trans_result)
-            if best_marker is None:
-                best_marker = t_map
-                best_delta = delta
-                marker_name_extension = str(m.id) + '_' + str(n)
-            elif delta < best_delta:
-                best_marker = t_map
-                best_delta = delta
-                marker_name_extension = str(m.id) + '_' + str(n)
+        #if np.abs(d_yaw) <= orientation_error:
+        delta = np.linalg.norm(trans_result)
+        if best_marker is None:
+            best_marker = t_map
+            best_delta = delta
+            best_yaw = d_yaw
+            marker_name_extension = str(m.id) + '_' + str(n)
+        elif delta < best_delta and d_yaw < best_yaw:
+            best_marker = t_map
+            best_delta = delta
+            best_yaw = d_yaw
+            marker_name_extension = str(m.id) + '_' + str(n)
         n += 1
-    print(best_marker)
+    #print(best_marker)
+    end = time.time()
+    print(end-start)
     return broadcast_transform(m, marker_name_extension)
 
 
@@ -178,23 +190,6 @@ def transform_stamped_to_pq(msg):
     """
     return transform_to_pq(msg.transform)
 
-def separate_quaternions_tf(t):
-    q_t = [0] * 4
-    q_t[0] = t.transform.rotation.x
-    q_t[1] = t.transform.rotation.y
-    q_t[2] = t.transform.rotation.z
-    q_t[3] = t.transform.rotation.w
-    return q_t
-
-
-def separate_quaternions_marker(m):
-    q = [0] * 4
-    q[0] = m.pose.orientation.x
-    q[1] = m.pose.orientation.y
-    q[2] = m.pose.orientation.z
-    q[3] = m.pose.orientation.w
-    return q
-
 
 def update_time(t):
     t.header.stamp = rospy.Time.now()
@@ -206,7 +201,7 @@ def is_localized():
 
 
 def main():
-    rate = rospy.Rate(40)  # Hz
+    rate = rospy.Rate(20)  # Hz
     while not rospy.is_shutdown():
         if transforms:
             if transforms[-1] is not None:
