@@ -151,7 +151,7 @@ def data_association(m):
         if np.abs(d_yaw) <= orientation_error:
             delta = np.linalg.norm(trans_result)
             print("delta_norm for {} is {};\n yaw info: best {} curr {}".format(str(m.id) + '_' + str(n), delta, best_yaw, d_yaw))
-            if best_marker is None or d_yaw < best_yaw:
+            if (best_marker is None or d_yaw < best_yaw) and delta < best_delta:
                 best_marker = t_map
                 best_delta = delta
                 best_yaw = d_yaw

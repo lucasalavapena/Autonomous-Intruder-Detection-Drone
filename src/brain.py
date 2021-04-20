@@ -8,16 +8,25 @@ import tf2_geometry_msgs
 import argparse
 from planning.scripts import planning, planning_utils, exploration_utils
 
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Float32
 
 is_localised = None
 
+emergency_landing = False
 
 def is_localised_callback(msg):
     global is_localised
     # print(msg.data)
     is_localised = msg.data
     # print('Drone is localised. Safe to fly.')
+
+
+def battery_callback(data):
+    global emergency_landing
+    battery = (data.data - 3.0) / (4.23 - 3.0) * 100
+
+    if battery < 30:
+        emergency_landing = True
 
 def main(args):
     print("RUNNING...")
@@ -36,6 +45,11 @@ def main(args):
         rate.sleep()
         if is_localised:
             if planner.pose_map is not None:
+
+                # emergency landing
+                if emergency_landing:
+                    break
+
                 print("RRT start")
                 x = planner.pose_map.pose.position.x
                 y = planner.pose_map.pose.position.y
@@ -46,6 +60,8 @@ def main(args):
                 rospy.loginfo_throttle(5, 'Path:\n%s', path)
 
                 path_msg = [planner.create_msg(a, b, 0.3) for (a, b) in path]
+
+
 
                 # First it should always go straight up to make it easy for it
                 if path:
@@ -79,7 +95,7 @@ args = parser.parse_args()
 
 rospy.init_node('brain')
 sub = rospy.Subscriber('localisation/is_localised', Bool, is_localised_callback)
-
+rospy.Subscriber("/cf1/battery", Float32, battery_callback)
 if __name__ == "__main__":
     if args.map:
         main(args)
