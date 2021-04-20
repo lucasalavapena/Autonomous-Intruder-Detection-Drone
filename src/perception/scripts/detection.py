@@ -278,7 +278,7 @@ class image_converter:
                                                         math.radians(rvec.ravel()[2]))
                         
                         self.br.sendTransform(
-                            tvec.ravel(), rotation, rospy.Time.now(), sign, 'cf1/camera_link') 
+                            tvec.ravel(), rotation, rospy.Time.now(), "landmark/detected_" + sign, 'cf1/camera_link') 
                         # ---------------------------------------------------------------------------------
 
         try:
