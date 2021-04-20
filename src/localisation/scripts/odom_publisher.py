@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import time
+import math
 import rospy
 import tf2_ros
 import tf2_geometry_msgs
@@ -146,16 +147,11 @@ def data_association(m):
         rot_result = quaternion_from_matrix(result_mat)
 
         d_roll, d_pitch, d_yaw = euler_from_quaternion(rot_result)
-        orientation_error = 3.1415926/6
+        orientation_error = math.pi/6
         if np.abs(d_yaw) <= orientation_error:
             delta = np.linalg.norm(trans_result)
             print("delta_norm for {} is {};\n yaw info: best {} curr {}".format(str(m.id) + '_' + str(n), delta, best_yaw, d_yaw))
-            if best_marker is None:
-                best_marker = t_map
-                best_delta = delta
-                best_yaw = d_yaw
-                marker_name_extension = str(m.id) + '_' + str(n)
-            elif d_yaw < best_yaw:
+            if best_marker is None or d_yaw < best_yaw:
                 best_marker = t_map
                 best_delta = delta
                 best_yaw = d_yaw
