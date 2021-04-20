@@ -9,8 +9,18 @@ import tf2_ros
 from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import TransformStamped, Vector3
 
+"""
+Read in the world.json file describing the chosen world using an argument, and for each landmark create a transform
+map->landmark/[sign name]
+"""
+
 
 def transform_from_landmark(m):
+    """
+    Create a transformation from map to the point of the landmark.
+    :param m:
+    :return t: TransposeStamped message with transformation map->landmark/[sign name]
+    """
     t = TransformStamped()
     t.header.frame_id = 'map'
     t.child_frame_id = 'landmark/' + str(m['sign'])
@@ -33,7 +43,7 @@ def main(argv=sys.argv):
     with open(args[1], 'rb') as f:
         world = json.load(f)
 
-    # Create a transform for each marker
+    # Create a transform for each landmark
     transforms = [transform_from_landmark(m) for m in world['roadsigns']]
 
     # Publish these transforms statically forever

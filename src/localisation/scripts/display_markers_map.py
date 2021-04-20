@@ -10,15 +10,26 @@ from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import TransformStamped, Vector3
 from std_msgs.msg import Int16
 
+"""
+Read in the world.json file describing the chosen world using an argument, and for each aruco marker create a transform
+map->aruco/marker[id], and if necessary add a unique identifier to markers with non-unique id's. Assumes only 2 
+different ID's in map. One ID is unique, and one ID is not unique.
+"""
+
 
 def transform_from_marker(m, n, unique):
+    """
+    Create a transformation from map to the point of the aruco marker.
+    :param m:
+    :return t: TransposeStamped message with transformation map->aruco/marker[id]_uniqueID
+    """
     t = TransformStamped()
     t.header.frame_id = 'map'
 
     if m['id'] == unique:
         t.child_frame_id = 'aruco/marker' + str(m['id'])
     else:
-        t.child_frame_id = 'aruco/marker' + str(m['id']) + '_' + str(n)
+        t.child_frame_id = 'aruco/marker' + str(m['id']) + '_' + str(n)  # ex: aruco/marker0_0
 
     t.transform.translation = Vector3(*m['pose']['position'])
     roll, pitch, yaw = m['pose']['orientation']
@@ -33,6 +44,7 @@ def transform_from_marker(m, n, unique):
 
 def main(argv=sys.argv):
 
+    # Initialize node, publisher and broadcaster
     rospy.init_node('display_markers_map')
     pub = rospy.Publisher('/marker/unique', Int16, queue_size=10)
     broadcaster = tf2_ros.StaticTransformBroadcaster()
@@ -44,13 +56,10 @@ def main(argv=sys.argv):
     with open(args[1], 'rb') as f:
         world = json.load(f)
 
-    #f = open('/home/joakim/dd2419_project/src/course_packages/dd2419_resources/worlds_json/DA_test.world.json', 'rb')
-    #world = json.load(f)
-
     # Create a transform for each marker
-    ids = [marker['id'] for marker in world['markers']]
-    unique_ind = [ids.index(i) for i in set(ids) if ids.count(i) == 1]
-    unique = ids[unique_ind[0]]
+    ids = [marker['id'] for marker in world['markers']]  # Get all ID's
+    unique_ind = [ids.index(i) for i in set(ids) if ids.count(i) == 1]  # Find index of unique ID
+    unique = ids[unique_ind[0]]  # Get unique ID
 
     transforms = []
     n = 0
@@ -61,7 +70,7 @@ def main(argv=sys.argv):
         else:
             t = transform_from_marker(m, n, unique)
             transforms.append(t)
-            n += 1
+            n += 1  # Only increase in number for the non-unique ID
 
     # Publish these transforms statically forever
     broadcaster.sendTransform(transforms)

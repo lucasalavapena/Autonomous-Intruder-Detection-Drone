@@ -12,12 +12,18 @@ def pose_callback(msg):
 
 
 def broadcast_pose(m):
-    # Create new message with time stamps and frames
+    """
+    In relation to cf1/base_footprint, the child frame cf1/base_stabilized varies in z, taking
+    the measurements directly from the cf1/pose topic. x, y, roll, pitch and yaw are set to 0 for this transform.
+    :param m:
+    :broadcasts t: [x y z roll pitch yaw] = [0 0 z 0 0 0]
+    """
 
+    # Create new message with time stamps and frames
     t = TransformStamped(header=m.header, child_frame_id=frame_id)
     t.header.frame_id = 'cf1/base_footprint'
     t.transform.translation.z = m.pose.position.z
-    t.transform.rotation.w = 1
+    t.transform.rotation.w = 1  # w can't be 0 and TransformStamped() is initialized with all values being 0.
 
     br.sendTransform(t)
 

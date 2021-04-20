@@ -11,7 +11,7 @@ from itertools import product
 
 # for test
 # random.seed(19)
-DRONE_MAX_SIDE = 0.225
+DRONE_MAX_SIDE = 0.15
 
 def RRT(curr_x, curr_y, goal_x, goal_y, Map):
     """
@@ -41,7 +41,10 @@ def RRT(curr_x, curr_y, goal_x, goal_y, Map):
         if distance(Tree[-1], goal_node) <= 0.2:
             break
         i += 1
-        
+
+        if i >= 1000:
+            break
+
     path = generate_path(Tree[-1])
 
     return path
@@ -72,7 +75,6 @@ def grow(rand_node, nearest_node, Map, steps = 1000):
     :param steps: how many steps it should take to check that there is no collision
     :return:
     """
-
     delta_x = (rand_node.x - nearest_node.x) / steps
     delta_y = (rand_node.y - nearest_node.y) / steps
     for i in range(1, steps +1):
@@ -138,7 +140,7 @@ class Node:
 
 # The class representing the room and its limits
 class Map:
-    def __init__(self, map_path, expansion_factor=0.15):
+    def __init__(self, map_path, expansion_factor=0.1):
         self.obstacles = []
         self.airspace = None
         self.mesh_grid = None

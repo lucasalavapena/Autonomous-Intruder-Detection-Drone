@@ -20,8 +20,12 @@ unique_id = None
 
 
 def marker_callback(msg):
+    """
+    msg contains list of detected aruco markers and for each marker, determine if it's the unique marker or a
+    non-unique marker. If unique, send msg to broadcast_transform(). Otherwise send msg to data_association().
+    """
     global transforms
-    #is_localized()
+    is_localized()
     for m in msg.markers:
         if m.id == unique_id:
             marker_name_extension = str(m.id)
@@ -32,16 +36,29 @@ def marker_callback(msg):
                 transforms.append(result)
         if len(transforms) > 2:
             transforms.pop(0)
-        #print('transforms: ' + str(transforms))
 
 
 def unique_callback(msg):
+    """
+    Set global unique_id to the unique id from topic /marker/unique
+    """
     global unique_id
     unique_id = msg.data
 
 
 def broadcast_transform(m, marker_name_extension):
-    # Find transform of pose of detected marker in odom
+    """
+    By assuming that the pose of detected marker = pose of static marker in map, get transforms from map->static marker
+    and detected marker->odom (which is the inverse) use matrix dot multiplication to find relative difference between
+    the transforms. This difference is then the resulting translation and rotation vectors describing map->cf1/odom.
+    Because the problem is simplified with frames cf1/base_link, cf1/base_stabilized and cf1/base_footprint, z, roll
+    and pitch are set to 0.
+
+    :param m: message containing marker information
+    :param marker_name_extension: if non-unique marker ID, describes the unique name extension
+    :broadcast t: broadcast calculated map->cf1/odom transfer with z, roll, pitch = 0
+    """
+    # Find transform of pose of odom in detected marker frame
     try:
         detected = tf_buf.lookup_transform('aruco/detected' + str(m.id), 'cf1/odom', m.header.stamp, rospy.Duration(tf_timeout))
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
@@ -49,7 +66,7 @@ def broadcast_transform(m, marker_name_extension):
         return
     trans_detected, rot_detected = transform_stamped_to_pq(detected)
 
-    # Find transform of pose of static marker in map
+    # Find transform of pose of static marker in map frame
     try:
         t_map = tf_buf.lookup_transform('map', 'aruco/marker' + marker_name_extension, m.header.stamp)
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
@@ -91,13 +108,19 @@ def broadcast_transform(m, marker_name_extension):
 
 
 def data_association(m):
+    """
+    Using transform detected marker->odom, calculate relative difference in yaw rotation using map->static markers of
+    [id] and send the best match to broadcast_transform() (if match).
+    :param m:
+    :return t: Transform of map->odom using the most correct marker found.
+    """
     start = time.time()
     best_marker = None
     marker_name_extension = 'None found'
     best_delta = 100
     best_yaw = 100
 
-    # Find transform of pose of detected marker in map
+    # Find transform of pose of map in detected marker frame
     try:
         detected = tf_buf.lookup_transform("aruco/detected" + str(m.id), 'map',  m.header.stamp, rospy.Duration(tf_timeout))
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
@@ -106,15 +129,14 @@ def data_association(m):
     trans_detected, rot_detected = transform_stamped_to_pq(detected)
     detected_mat = np.dot(translation_matrix(trans_detected), quaternion_matrix(rot_detected))
 
-    more_markers = True
     n = 0
-    while more_markers:
+    while True:
         # Find transform of pose of static marker in map
         try:
             t_map = tf_buf.lookup_transform('map', "aruco/marker" + str(m.id) + '_' + str(n), m.header.stamp)
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
             print(e)
-            break
+            break  # if n exceeds number for last non-unique static marker in map, end the loop.
         trans_map, rot_map = transform_stamped_to_pq(t_map)
         map_mat = np.dot(translation_matrix(trans_map), quaternion_matrix(rot_map))
 
@@ -125,7 +147,6 @@ def data_association(m):
 
         d_roll, d_pitch, d_yaw = euler_from_quaternion(rot_result)
         orientation_error = 3.1415926/6
-        #print()
         if np.abs(d_yaw) <= orientation_error:
             delta = np.linalg.norm(trans_result)
             print("delta_norm for {} is {};\n yaw info: best {} curr {}".format(str(m.id) + '_' + str(n), delta, best_yaw, d_yaw))
@@ -141,36 +162,10 @@ def data_association(m):
                 marker_name_extension = str(m.id) + '_' + str(n)
         n += 1
     print('best: ' + marker_name_extension)
-    # end = time.time()
-    # print(end-start)
-    if best_delta == 100 or best_yaw == 100:
+    end = time.time()
+    if best_delta == 100 or best_yaw == 100:  # If no marker found was good enough, return nothing
         return None
     return broadcast_transform(m, marker_name_extension)
-
-
-def pose_to_pq(msg):
-    """Convert a C{geometry_msgs/Pose} into position/quaternion np arrays
-
-    @param msg: ROS message to be converted
-    @return:
-      - p: position as a np.array
-      - q: quaternion as a numpy array (order = [x,y,z,w])
-    """
-    p = np.array([msg.position.x, msg.position.y, msg.position.z])
-    q = np.array([msg.orientation.x, msg.orientation.y,
-                  msg.orientation.z, msg.orientation.w])
-    return p, q
-
-
-def pose_stamped_to_pq(msg):
-    """Convert a C{geometry_msgs/PoseStamped} into position/quaternion np arrays
-
-    @param msg: ROS message to be converted
-    @return:
-      - p: position as a np.array
-      - q: quaternion as a numpy array (order = [x,y,z,w])
-    """
-    return pose_to_pq(msg.pose)
 
 
 def transform_to_pq(msg):
@@ -199,11 +194,20 @@ def transform_stamped_to_pq(msg):
 
 
 def update_time(t):
+    """
+    Take an existing transform and update the time in the header stamp
+
+    :param t: TransformStamped with time = now
+    :return:
+    """
     t.header.stamp = rospy.Time.now()
     return t
 
 
 def is_localized():
+    """
+    Publish a boolean True to 'localisation/is_localised' topic
+    """
     pub.publish(Bool(data=True))
 
 

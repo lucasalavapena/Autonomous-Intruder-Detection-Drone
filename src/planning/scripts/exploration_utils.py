@@ -16,7 +16,7 @@ import random
 np.set_printoptions(threshold=sys.maxsize)
 
 CrazyFlie_FOV = 140
-CrazyFlie_Render = 0.85 # 0.8
+# CrazyFlie_Render = 0.85 # 0.8
 
 class CrazyflieCamera:
     """
@@ -29,7 +29,7 @@ class CrazyflieCamera:
 
 
 class DoraTheExplorer:
-    def __init__(self, map_path, discretization=0.5):
+    def __init__(self, map_path, discretization=0.05, CrazyFlie_Render=0.85):
         """
         DoraTheExplorer constructor
         :param map_path: path to the world.json file
@@ -206,10 +206,10 @@ def test():
     rospy.init_node('Dora')
 
     my_path = os.path.abspath(os.path.dirname(__file__))
-    file = "dora_adventure_map.world.json" #"lucas_room_screen.world.json"
+    file = "joakimV2.world.json" #"lucas_room_screen.world.json"
     map_path = os.path.join(my_path, "../..", "course_packages/dd2419_resources/worlds_json", file)
     Dora = DoraTheExplorer(map_path)
-    print(Dora.generate_best_path((0.5, 0.3), True))
+    print(Dora.generate_best_path((1.2, 0.13), True))
 if __name__ == "__main__":
     test()
 
