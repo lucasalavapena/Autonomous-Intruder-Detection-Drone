@@ -12,6 +12,13 @@ def pose_callback(msg):
 
 
 def broadcast_pose(m):
+    """
+    In relation to cf1/base_stabilized, the child frame cf1/base_link varies in roll and pitch, taking
+    the measurements directly from the cf1/pose topic. x, y, z and yaw are set to 0 for this transform.
+    :param m:
+    :broadcasts t: [x y z roll pitch yaw] = [0 0 0 roll pitch 0]
+    """
+
     # Create new message with time stamps and frames
     t = TransformStamped()
     t.header = m.header

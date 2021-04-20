@@ -12,6 +12,13 @@ def pose_callback(msg):
 
 
 def broadcast_pose(m):
+    """
+    In relation to the cf1/odometry frame, the child frame cf1/base_footprint varies in x, y and yaw, taking
+    the measurements directly from the cf1/pose topic. z, roll and pitch are set to 0 in this transform.
+    :param m:
+    :broadcasts t: [x y z roll pitch yaw] = [x y 0 0 0 yaw]
+    """
+
     # Create new message with time stamps and frames
     m.pose.position.z = 0
     roll, pitch, yaw = euler_from_quaternion((m.pose.orientation.x,

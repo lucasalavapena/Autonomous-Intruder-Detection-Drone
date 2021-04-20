@@ -13,14 +13,21 @@ def marker_callback(msg):
 
 
 def broadcast_marker_transform(m):
+    """
+    The detected marker m is a point expressed in cf1/camera_link, therefore no transformation of the point is needed
+    and the transform to the detected marker from cf1/camera_link is simply the point, since cf1/camera_link is the
+    origin.
+    :param m:
+    :broadcast t: cf1/camera_link -> aruco/detected[id]
+    """
 
-    test = TransformStamped()
-    test.header = m.header
-    test.child_frame_id = 'aruco/detected' + str(m.id)
-    test.transform.translation = m.pose.pose.position
-    test.transform.rotation = m.pose.pose.orientation
+    t = TransformStamped()
+    t.header = m.header
+    t.child_frame_id = 'aruco/detected' + str(m.id)
+    t.transform.translation = m.pose.pose.position
+    t.transform.rotation = m.pose.pose.orientation
 
-    br.sendTransform(test)
+    br.sendTransform(t)
 
 
 print("Starting...")
