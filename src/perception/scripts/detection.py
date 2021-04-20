@@ -270,7 +270,7 @@ class image_converter:
                         t = TransformStamped()
                         t.header.frame_id = 'cf1/camera_link'
                         t.header.stamp = rospy.Time.now()
-                        t.child_frame_id = sign
+                        t.child_frame_id = "landmark/detected_" + sign
 
                         rotation = quaternion_from_euler(math.radians(rvec.ravel()[0]),
                                                         math.radians(rvec.ravel()[1]),
