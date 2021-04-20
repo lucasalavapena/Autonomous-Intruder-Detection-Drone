@@ -211,7 +211,7 @@ class image_converter:
             out = self.detector(torch_im)  # .cpu()
 
             # detect bounding box with threshold
-            bbs = self.detector.decode_output(out, NN_THRESHOLD, multiple_bb=True)
+            bbs = self.detector.decode_output(out[0], NN_THRESHOLD, multiple_bb=True)
 
             if bbs:
                 for bb in bbs[0]:
