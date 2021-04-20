@@ -3,7 +3,7 @@ import rospy
 from std_msgs.msg import Float32
 
 LOW_BATTERY = 50 # percent
-CRITICAL_BATTERY = 70 # percent
+CRITICAL_BATTERY = 30 # percent
 
 CRITICAL_BATTERY_MSG = """\n####################################\n###### BATTERY LEVEL CRITICAL ######\n######  BATTERY IS AT {}%  ######\n####################################\n"""
 LOW_BATTERY_MSG = """\n####################################\n######   BATTERY LEVEL LOW    ######\n######  BATTERY IS AT {}%  ######\n####################################\n"""
