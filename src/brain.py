@@ -4,6 +4,8 @@ import rospy
 import os
 import tf2_ros
 import tf2_geometry_msgs
+
+import argparse
 from planning.scripts import planning, planning_utils, exploration_utils
 
 from std_msgs.msg import Bool
@@ -17,15 +19,16 @@ def is_localised_callback(msg):
     is_localised = msg.data
     # print('Drone is localised. Safe to fly.')
 
-def main():
+def main(args):
     print("RUNNING...")
     rate = rospy.Rate(20)  # Hz
     my_path = os.path.abspath(os.path.dirname(__file__))
-    map_path = os.path.join(my_path, "course_packages/dd2419_resources/worlds_json", "joakim.world.json")
-    Dora = exploration_utils.DoraTheExplorer(map_path)
+    map_path = os.path.join(my_path, "course_packages/dd2419_resources/worlds_json",
+                            "{}.world.json".format(args.map))
+    Dora = exploration_utils.DoraTheExplorer(map_path, discretization=args.discretization,
+                                             CrazyFlie_Render=args.render_distance)
     planner = planning.PathPlanner(Dora)
-    world_map = planning_utils.Map(map_path)
-
+    world_map = planning_utils.Map(map_path, expansion_factor=args.expansion_factor)
     rospy.sleep(5) # to one time to record the bag and prepare
     has_taken_off = False
 
@@ -62,9 +65,23 @@ def main():
                     planner.d360_yaw()
                 print("Completed best view point")
 
+# arguments
+parser = argparse.ArgumentParser(
+    description="BRAINSSSSS"
+)
+parser.add_argument('map', type=str, help='filename of world.json map')
+parser.add_argument('--discretization', type=float, default=0.05, help='discretization of map for explorer in m/cell')
+parser.add_argument('--expansion-factor', type=float, default=0.1, help='expansion_factor of map')
+parser.add_argument('--render-distance', type=float, default=0.85, help='CrazyFlie Render Distance')
+
+
+args = parser.parse_args()
 
 rospy.init_node('brain')
 sub = rospy.Subscriber('localisation/is_localised', Bool, is_localised_callback)
 
 if __name__ == "__main__":
-    main()
+    if args.map:
+        main(args)
+    else:
+        print("You need to give the file name [without the .world.json] of the map in the world_json dir")
