@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 from __future__ import print_function
 
 import math
@@ -6,7 +6,6 @@ import rospy
 import pickle
 import os.path
 import cv2
-import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -18,13 +17,12 @@ from tf.transformations import quaternion_from_euler
 import torchvision.transforms.functional as TF
 
 import torch
-import torch.nn as nn
 from torchvision import transforms
 
 from dd2419_detector_baseline_OG import utils
 from dd2419_detector_baseline_OG.detector import Detector
 
-DETECTOR = "SURF"
+
 LABELS_PATH = "src/perception/scripts/dd2419_detector_baseline_OG/dd2419_coco/annotations/training.json"
 CWD = os.path.abspath(os.path.dirname(__file__))
 MODEL_PATH = os.path.join(
@@ -148,7 +146,7 @@ class image_converter:
             imgpts[2].ravel()), (0, 0, 255), 5)
         return img
 
-    def detect_features(self, img, detector=DETECTOR):
+    def detect_features(self, img, detector="SURF"):
         if detector == "SURF":
             # find the keypoints and descriptors with SIFT
             kp, des = self.feature_detector["SURF"].detectAndCompute(img, None)
@@ -213,7 +211,7 @@ class image_converter:
             out = self.detector(torch_im)  # .cpu()
 
             # detect bounding box with threshold
-            bbs = self.detector.decode_output(out, 0.7, multiple_bb=True)
+            bbs = self.detector.decode_output(out, NN_THRESHOLD, multiple_bb=True)
 
             if bbs:
                 for bb in bbs[0]:
@@ -224,7 +222,7 @@ class image_converter:
 
                     # ----------------------- REVISED FEATURE DETECTION ----------------------
                     # detect features
-                    kp, des = self.detect_features(cv_image)
+                    kp, des = self.detect_features(cv_image, detector=DETECTOR)
                     sign = category.replace(" ", "_")
                     # find matches
                     matches = self.get_matches(
@@ -298,13 +296,9 @@ def main(args):
 
     cv2.destroyAllWindows()
 
+DETECTOR = rospy.get_param("~feature_detector", "SURF")
+HARDWARE = rospy.get_param('~inference_hardware', 'cpu')
+NN_THRESHOLD = rospy.get_param("~nn_theshold", 0.75)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    device = parser.add_mutually_exclusive_group(required=True)
-    device.add_argument("--cpu", dest="device",
-                        action="store_const", const="cpu")
-    device.add_argument("--gpu", dest="device",
-                        action="store_const", const="cuda")
-    args = parser.parse_args()
-    main(args.device)
+    main(HARDWARE)

@@ -118,6 +118,9 @@
   <node pkg="localisation" type="odom_publisher.py" name="odom_publisher"/>
   <node pkg="localisation" type="detect_marker.py" name="detect_marker" />
 
+  <!-- Perception nodes -->
+  <node pkg="perception" type="detection.py" name="detection" output="screen"/>
+
   <!-- Utility nodes -->
   <node pkg="utilities" type="battery_check.py" name="battery_check" output="screen"/>
 
