@@ -170,7 +170,7 @@ class image_converter:
         # Apply ratio test
         good = []
         for m, n in matches:
-            if m.distance < 0.55 * n.distance:
+            if m.distance < 0.75 * n.distance:
                 good.append([m])
 
         if display_result:
@@ -250,7 +250,10 @@ class image_converter:
                             self.camera_params["K"], 
                             self.camera_params["D"], 
                             useExtrinsicGuess=True)
-
+                        
+                        norm = np.linalg.norm(tvec)
+                        if norm > 30 or norm < 1e-10:
+                            continue
                         # project axis with result from ransac
                         projected_axis, jacobian = cv2.projectPoints(
                             AXIS, rvec, tvec, self.camera_params["K"], self.camera_params["D"])
