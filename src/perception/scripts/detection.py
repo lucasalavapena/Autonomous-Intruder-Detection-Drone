@@ -28,7 +28,7 @@ CWD = os.path.abspath(os.path.dirname(__file__))
 MODEL_PATH = os.path.join(
     CWD, "../models/det_2021-04-13_10-36-30-100473.pt")  # Current model
 AXIS = np.float32([[3, 0, 0], [0, 3, 0], [0, 0, 3]]).reshape(-1, 3)
-
+RotX = np.float32([[1, 0, 0], [0, -1, 0], [0, 0, -1]]) # Rotation matrix about x-axis
 
 class image_converter:
 
@@ -254,6 +254,39 @@ class image_converter:
                         norm = np.linalg.norm(tvec)
                         if norm > 30 or norm < 1e-10:
                             continue
+                        
+                        # rvec *= 57.2957795131
+                        tvec *=  25 / bb['width'].item() #tvec / 480
+
+
+                        rodrigues, _ = cv2.Rodrigues(rvec)
+                        rvec_converted, _ = cv2.Rodrigues(rodrigues.T)
+                        rvec_converted = RotX * rvec_converted
+
+                        tvec_converted = -rodrigues.T * tvec
+                        tvec_converted = RotX * tvec_converted
+
+                        rvec[0], rvec[1], rvec[2] = rvec_converted[0][0], rvec_converted[1][1], rvec_converted[2][2]
+                        tvec[0], tvec[1], tvec[2] = tvec_converted[0][0], tvec_converted[1][1], tvec_converted[2][2]
+
+                        # cv::Mat R;
+                        # cv::Rodrigues(rvec, R);
+
+                        # R = R.t();  // rotation of inverse
+                        # Mat rvecConverted;
+                        # Rodrigues(R, rvecConverted); //
+                        # std::cout << "rvec in world coords:\n" << rvecConverted << std::endl;
+                        # rvecConverted = RotX * rvecConverted;
+                        # std::cout << "rvec scenekit :\n" << rvecConverted << std::endl;
+
+                        # Mat tvecConverted = -R * tvec;
+                        # std::cout << "tvec in world coords:\n" << tvecConverted << std::endl;
+                        # tvecConverted = RotX * tvecConverted;
+                        # std::cout << "tvec scenekit :\n" << tvecConverted << std::endl;
+
+                        # SCNVector4 rotationVector = SCNVector4Make(rvecConverted.at<double>(0), rvecConverted.at<double>(1), rvecConverted.at<double>(2), norm(rvecConverted));
+                        # SCNVector3 translationVector = SCNVector3Make(tvecConverted.at<double>(0), tvecConverted.at<double>(1), tvecConverted.at<double>(2));
+
                         # project axis with result from ransac
                         projected_axis, jacobian = cv2.projectPoints(
                             AXIS, rvec, tvec, self.camera_params["K"], self.camera_params["D"])
