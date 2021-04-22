@@ -255,20 +255,22 @@ class image_converter:
                         if norm > 30 or norm < 1e-10:
                             continue
                         
+                        # # Scaling experiments
                         # rvec *= 57.2957795131
-                        tvec *=  25 / bb['width'].item() #tvec / 480
+                        # tvec *=  25 / bb['width'].item() #tvec / 480
 
+                        # # Python implementation of C++ code below, not currently working but maybe a good start?
+                        # rodrigues, _ = cv2.Rodrigues(rvec)
+                        # rvec_converted, _ = cv2.Rodrigues(rodrigues.T)
+                        # rvec_converted = RotX * rvec_converted
 
-                        rodrigues, _ = cv2.Rodrigues(rvec)
-                        rvec_converted, _ = cv2.Rodrigues(rodrigues.T)
-                        rvec_converted = RotX * rvec_converted
+                        # tvec_converted = -rodrigues.T * tvec
+                        # tvec_converted = RotX * tvec_converted
 
-                        tvec_converted = -rodrigues.T * tvec
-                        tvec_converted = RotX * tvec_converted
+                        # rvec[0], rvec[1], rvec[2] = rvec_converted[0][0], rvec_converted[1][1], rvec_converted[2][2]
+                        # tvec[0], tvec[1], tvec[2] = tvec_converted[0][0], tvec_converted[1][1], tvec_converted[2][2]
 
-                        rvec[0], rvec[1], rvec[2] = rvec_converted[0][0], rvec_converted[1][1], rvec_converted[2][2]
-                        tvec[0], tvec[1], tvec[2] = tvec_converted[0][0], tvec_converted[1][1], tvec_converted[2][2]
-
+                        # Stolen C++ code [https://stackoverflow.com/questions/44008003/camera-pose-estimation-from-homography-or-with-solvepnp-function]
                         # cv::Mat R;
                         # cv::Rodrigues(rvec, R);
 
