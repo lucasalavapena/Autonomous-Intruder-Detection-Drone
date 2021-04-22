@@ -10,7 +10,9 @@
   "roadsign_size": [0.19, 0.19],
 
   "markers": [
-    {"id": 7, "pose": {"position": [0.0, 0.0, 0.0], "orientation": [0.0, 0.0, 0.0]}}
+    {"id": 7, "pose": {"position": [0.152, 0.0, 0.28], "orientation": [0.0, -90.0, 0.0]}},
+    {"id": 0, "pose": {"position": [0.6, 0.21, 0.28], "orientation": [0.0, -90.0, 90.0]}},
+    {"id": 0, "pose": {"position": [0.6, 0.7375, 0.28], "orientation": [0.0, -90.0, 90.0]}}
   ],
 
   "walls": [

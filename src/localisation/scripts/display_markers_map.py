@@ -8,12 +8,12 @@ import rospy
 import tf2_ros 
 from tf.transformations import quaternion_from_euler
 from geometry_msgs.msg import TransformStamped, Vector3
-from std_msgs.msg import Int16
+from std_msgs.msg import Int16MultiArray
 
 """
 Read in the world.json file describing the chosen world using an argument, and for each aruco marker create a transform
 map->aruco/marker[id], and if necessary add a unique identifier to markers with non-unique id's. Assumes only 2 
-different ID's in map. One ID is unique, and one ID is not unique.
+different ID's in map. One ID is unique, and one ID is not unique. Publishes both ID's as a list.
 """
 
 
@@ -46,7 +46,7 @@ def main(argv=sys.argv):
 
     # Initialize node, publisher and broadcaster
     rospy.init_node('display_markers_map')
-    pub = rospy.Publisher('/marker/unique', Int16, queue_size=10)
+    pub = rospy.Publisher('/marker/unique', Int16MultiArray, queue_size=10)
     broadcaster = tf2_ros.StaticTransformBroadcaster()
 
     # Let ROS filter through the arguments
@@ -61,6 +61,11 @@ def main(argv=sys.argv):
     unique_ind = [ids.index(i) for i in set(ids) if ids.count(i) == 1]  # Find index of unique ID
     unique = ids[unique_ind[0]]  # Get unique ID
 
+    id_list = [unique]
+    for x in set(ids):
+        if not x == unique:
+            id_list.append(x)
+
     transforms = []
     n = 0
     for m in world['markers']:
@@ -74,8 +79,10 @@ def main(argv=sys.argv):
 
     # Publish these transforms statically forever
     broadcaster.sendTransform(transforms)
-    while not rospy.is_shutdown():
-        pub.publish(unique)
+    while not rospy.is_shutdown():  # Publish the set of ID's
+        array = Int16MultiArray(data=id_list)
+        pub.publish(array)
+        rospy.sleep(0.1)
 
 
 if __name__ == "__main__":

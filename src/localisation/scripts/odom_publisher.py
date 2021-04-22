@@ -7,7 +7,7 @@ import tf2_geometry_msgs
 import numpy as np
 from aruco_msgs.msg import MarkerArray
 from geometry_msgs.msg import TransformStamped
-from std_msgs.msg import Bool, Int16, String
+from std_msgs.msg import Bool, Int16MultiArray, String
 from tf.transformations import euler_from_quaternion,       \
                                 quaternion_from_euler,      \
                                 translation_matrix,         \
@@ -18,6 +18,7 @@ from tf.transformations import euler_from_quaternion,       \
 
 transforms = []
 unique_id = None
+non_unique_id = None
 
 
 def marker_callback(msg):
@@ -45,7 +46,9 @@ def unique_callback(msg):
     Set global unique_id to the unique id from topic /marker/unique
     """
     global unique_id
-    unique_id = msg.data
+    global non_unique_id
+    unique_id = msg.data[0]
+    non_unique_id = msg.data[1]
 
 
 def broadcast_transform(m, marker_name_extension):
@@ -136,7 +139,7 @@ def data_association(m):
     while True:
         # Find transform of pose of static marker in map
         try:
-            t_map = tf_buf.lookup_transform('map', "aruco/marker" + str(m.id) + '_' + str(n), m.header.stamp)
+            t_map = tf_buf.lookup_transform('map', "aruco/marker" + str(non_unique_id) + '_' + str(n), m.header.stamp)
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
             print(e)
             break  # if n exceeds number for last non-unique static marker in map, end the loop.
@@ -152,14 +155,12 @@ def data_association(m):
         orientation_error = math.pi / 6
         if np.abs(d_yaw) <= orientation_error:
             delta = np.linalg.norm(trans_result)
-            print(
-                "delta_norm for {} is {};\n yaw info: best {} curr {}".format(str(m.id) + '_' + str(n), delta, best_yaw,
-                                                                              d_yaw))
+            print("delta_norm for {} is {};\n yaw info: best {} curr {}".format(str(non_unique_id) + '_' + str(n), delta, best_yaw, d_yaw))
             if (best_marker is None or d_yaw <= best_yaw) and delta < best_delta:
                 best_marker = t_map
                 best_delta = delta
                 best_yaw = d_yaw
-                marker_name_extension = str(m.id) + '_' + str(n)
+                marker_name_extension = str(non_unique_id) + '_' + str(n)
         n += 1
     print('best: ' + marker_name_extension)
     end = time.time()
@@ -226,7 +227,7 @@ tf_buf = tf2_ros.Buffer()
 tf_lstn = tf2_ros.TransformListener(tf_buf)
 br = tf2_ros.TransformBroadcaster()
 sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback)
-sub_unique = rospy.Subscriber('/marker/unique', Int16, unique_callback)
+sub_unique = rospy.Subscriber('/marker/unique', Int16MultiArray, unique_callback)
 pub = rospy.Publisher('localisation/is_localised', Bool, queue_size=10)
 
 tf_timeout = rospy.get_param('~tf_timeout', 0.1)
