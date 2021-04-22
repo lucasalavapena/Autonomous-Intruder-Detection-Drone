@@ -119,51 +119,37 @@ def data_association(m):
       :param m:
       :return t: Transform of map->odom using the most correct marker found.
       """
-    start = time.time()
     best_marker = None
     marker_name_extension = 'None found'
     best_delta = 100
     best_yaw = 100
 
-    # Find transform of pose of map in detected marker frame
-    try:
-        detected = tf_buf.lookup_transform("aruco/detected" + str(m.id), 'map', m.header.stamp,
-                                           rospy.Duration(tf_timeout))
-    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-        print('odom_publisher.data_association: ', e)
-        return
-    trans_detected, rot_detected = transform_stamped_to_pq(detected)
-    detected_mat = np.dot(translation_matrix(trans_detected), quaternion_matrix(rot_detected))
+    frame_detected = 'aruco/detected' + str(m.id)
 
     n = 0
     while True:
+        frame_map = "aruco/marker" + str(non_unique_id) + '_' + str(n)
         # Find transform of pose of static marker in map
         try:
-            t_map = tf_buf.lookup_transform('map', "aruco/marker" + str(non_unique_id) + '_' + str(n), m.header.stamp)
+            t_map = tf_buf.lookup_transform(frame_detected, frame_map, m.header.stamp, rospy.Duration(tf_timeout))
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
             print(e)
             break  # if n exceeds number for last non-unique static marker in map, end the loop.
         trans_map, rot_map = transform_stamped_to_pq(t_map)
-        map_mat = np.dot(translation_matrix(trans_map), quaternion_matrix(rot_map))
 
-        # Compare positions and orientations of detected vs map markers
-        result_mat = np.dot(map_mat, detected_mat)
-        trans_result = translation_from_matrix(result_mat)
-        rot_result = quaternion_from_matrix(result_mat)
+        delta = np.linalg.norm(trans_map)
+        roll, pitch, yaw = euler_from_quaternion(rot_map)
 
-        d_roll, d_pitch, d_yaw = euler_from_quaternion(rot_result)
         orientation_error = math.pi / 6
-        if np.abs(d_yaw) <= orientation_error:
-            delta = np.linalg.norm(trans_result)
-            print("delta_norm for {} is {};\n yaw info: best {} curr {}".format(str(non_unique_id) + '_' + str(n), delta, best_yaw, d_yaw))
-            if (best_marker is None or d_yaw <= best_yaw) and delta < best_delta:
+        if np.abs(yaw) <= orientation_error:
+            print("delta_norm for {} is {};\n yaw info: best {} curr {}".format(str(non_unique_id) + '_' + str(n), delta, best_yaw, yaw))
+            if (best_marker is None or yaw <= best_yaw) and delta < best_delta:
                 best_marker = t_map
                 best_delta = delta
-                best_yaw = d_yaw
+                best_yaw = yaw
                 marker_name_extension = str(non_unique_id) + '_' + str(n)
         n += 1
     print('best: ' + marker_name_extension)
-    end = time.time()
     if best_delta == 100 or best_yaw == 100:  # If no marker found was good enough, return nothing
         return None
     return broadcast_transform(m, marker_name_extension)
