@@ -186,7 +186,7 @@ class image_converter:
             [drone_kp[item[0].trainIdx].pt for item in matches], dtype=np.float32)
         object_points = np.zeros(
             (image_points.shape[0], image_points.shape[1] + 1), dtype=np.float64)
-        object_points[:, :2] = (canonical2D_kp - canonical_center) / 10.0
+        object_points[:, :2] = (canonical2D_kp - canonical_center) / 10.0 # TODO this is random
         return object_points, image_points
 
     def callback(self, data):
@@ -255,7 +255,7 @@ class image_converter:
                         if norm > 30 or norm < 1e-10:
                             continue
                         
-                        # # Scaling experiments
+                        # Scaling experiments
                         # rvec *= 57.2957795131
                         # tvec *=  25 / bb['width'].item() #tvec / 480
 
