@@ -16,7 +16,6 @@ from tf.transformations import euler_from_quaternion,       \
                                 quaternion_from_matrix
 
 
-transforms = []
 unique_id = None
 non_unique_id = None
 
@@ -26,19 +25,13 @@ def marker_callback(msg):
     msg contains list of detected aruco markers and for each marker, determine if it's the unique marker or a
     non-unique marker. If unique, send msg to broadcast_transform(). Otherwise send msg to data_association().
     """
-    global transforms
     is_localized()
     for m in msg.markers:
         if m.id == unique_id:
             marker_name_extension = str(m.id)
-            transforms.append(broadcast_transform(m, marker_name_extension))
+            broadcast_transform(m, marker_name_extension)
         else:
-            pass
-            result = data_association(m)
-            if result:
-                transforms.append(result)
-        if len(transforms) > 2:
-            transforms.pop(0)
+            data_association(m)
 
 
 def unique_callback(msg):
@@ -109,7 +102,7 @@ def broadcast_transform(m, marker_name_extension):
      t.transform.rotation.z,
      t.transform.rotation.w) = rot_result
 
-    return t
+    pub_odom.publish(t)
 
 
 def data_association(m):
@@ -180,17 +173,6 @@ def transform_stamped_to_pq(msg):
     return transform_to_pq(msg.transform)
 
 
-def update_time(t):
-    """
-    Take an existing transform and update the time in the header stamp
-
-    :param t: TransformStamped with time = now
-    :return:
-    """
-    t.header.stamp = rospy.Time.now()
-    return t
-
-
 def is_localized():
     """
     Publish a boolean True to 'localisation/is_localised' topic
@@ -199,12 +181,7 @@ def is_localized():
 
 
 def main():
-    rate = rospy.Rate(20)  # Hz
-    while not rospy.is_shutdown():
-        if transforms:
-            if transforms[-1] is not None:
-                br.sendTransform(update_time(transforms[-1]))
-        rate.sleep()
+    rospy.spin()
 
 
 print('Starting...')
@@ -215,6 +192,7 @@ br = tf2_ros.TransformBroadcaster()
 sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback)
 sub_unique = rospy.Subscriber('/marker/unique', Int16MultiArray, unique_callback)
 pub = rospy.Publisher('localisation/is_localised', Bool, queue_size=10)
+pub_odom = rospy.Publisher('kf/input', TransformStamped, queue_size=10)
 
 tf_timeout = rospy.get_param('~tf_timeout', 0.1)
 print('Ready')
