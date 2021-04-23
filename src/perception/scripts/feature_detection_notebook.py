@@ -10,7 +10,7 @@ from dd2419_detector_baseline_OG.utils import run_model_singleimage
 SCALING_FACTOR = 0.3333
 DRONE_IMAGE_RATIO = (640, 480)
 CWD = os.path.abspath(os.path.dirname(__file__))
-axis = np.float32([[3, 0, 0], [0, 3, 0], [0, 0, 3]]).reshape(-1, 3)
+axis = np.float32([[100, 0, 0], [0, 100, 0], [0, 0, 100]]).reshape(-1, 3)
 RotX = np.float32([[1, 0, 0], [0, -1, 0], [0, 0, -1]]) # Rotation matrix about x-axis
 D = np.array([0.061687, -0.049761, -0.008166, 0.004284, 0.0])
 K = np.array([231.250001, 0.0, 320.519378, 0.0, 231.065552, 240.631482, 0.0, 0.0, 1.0]).reshape(3, 3)
@@ -28,7 +28,7 @@ def draw(img, corners, imgpts):
 # %%
 my_path = os.path.abspath(os.path.dirname(__file__))
 canon_img_path = os.path.join(CWD, "dd2419_traffic_sign_pdfs/stop.jpg")
-drone_img_path = os.path.join(CWD, "debug_photos/stop03.jpg")
+drone_img_path = os.path.join(CWD, "debug_photos/stop13.jpg")
 bounding_box = run_model_singleimage(drone_img_path, 0.5)[0][0]
 
 bb_info = {
@@ -43,7 +43,7 @@ bb_info["bottom_y"] = int(bb_info["top_y"] - round(bb_info["height"]))
 # %%
 canon_img = cv.imread(canon_img_path)  # queryImage
 drone_img = cv.imread(drone_img_path)   # trainImage
-
+drone_img_og = drone_img.copy()
 # Convert to grayscsale
 canon_img = cv.cvtColor(canon_img, cv.COLOR_BGR2GRAY)
 drone_img = cv.cvtColor(drone_img, cv.COLOR_BGR2GRAY)
@@ -95,6 +95,9 @@ object_points = np.zeros((image_points.shape[0], image_points.shape[1] + 1), dty
 object_points[:, :2] = canonical2D_kp
 # TODO put this on hold
 # object_points[:, :2] = (canonical2D_kp - object_center) / 10.0
+object_points[:, :1] = object_points[:, :1] - canon_img.shape[1]/2
+object_points[:, 1:2] = object_points[:, 1:2] - canon_img.shape[0]/2
+a = None
 
 # %%
 #solve PnP
@@ -112,7 +115,7 @@ if see_image_points:
 
 projected_axis, jacobian = cv.projectPoints(axis, rvec, tvec, K, D)
 
-result_img = draw(drone_img, center_in_drone_img, projected_axis)
+result_img = draw(drone_img_og, center_in_drone_img, projected_axis)
 plt.imshow(result_img), plt.show()
 
 # %%
@@ -127,7 +130,7 @@ tvec_converted = RotX * tvec_converted
 rvec[0], rvec[1], rvec[2] = rvec_converted[0][0], rvec_converted[1][1], rvec_converted[2][2]
 tvec[0], tvec[1], tvec[2] = tvec_converted[0][0], tvec_converted[1][1], tvec_converted[2][2]
 
-result_img = draw(drone_img, center_in_drone_img, projected_axis)
+result_img = draw(drone_img_og, center_in_drone_img, projected_axis)
 plt.imshow(result_img), plt.show()
 
 # %%
