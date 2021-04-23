@@ -195,7 +195,7 @@ def get_orientation(see_image_points=False):
     # drone_img_path = os.path.join(my_path, "dd2419_detector_baseline_OG/performance_test/test_images",
     #                               "0000097.jpg")
     canon_img_path = "/home/robot/dd2419_project/src/perception/scripts/dd2419_traffic_sign_pdfs/stop.jpg"
-    drone_img_path = "/home/robot/dd2419_project/src/perception/scripts/debug_photos/stop_angle16.jpg"
+    drone_img_path = "/home/robot/dd2419_project/src/perception/scripts/debug_photos/stop_angle05.jpg"
     # drone_img_path = os.path.join(my_path, "dd2419_traffic_sign_pdfs", "G6_00138.jpg")
     #os.path.join(my_path, "dd2419_traffic_sign_pdfs", "G6_00138.jpg")#
 
@@ -262,10 +262,11 @@ def get_orientation(see_image_points=False):
     projected_axis, jacobian = cv.projectPoints(axis, rvec, tvec, camera_matrix, dist_coeffs)
 
     drone_sign_center_loc = features_detected.centers["center_in_og_img"]
-    if crop:
-        drone_sign_center_loc = features_detected.centers["center_in_cropped_img"]
+    # if crop:
+    #     drone_sign_center_loc = features_detected.centers["center_in_cropped_img"]
     print(projected_axis)
-    result_img = draw(result_img, drone_sign_center_loc, projected_axis)
+    result_img = draw(features_detected.images["drone_img_og"], drone_sign_center_loc,
+                      np.array(projected_axis + np.array(drone_sign_center_loc) - np.array(features_detected.centers["center_in_cropped_img"]), dtype=int))
     plt.imshow(result_img), plt.show()
 
 
