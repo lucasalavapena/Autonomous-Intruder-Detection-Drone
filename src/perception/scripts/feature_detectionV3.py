@@ -5,6 +5,12 @@ import matplotlib.pyplot as plt
 import time
 from dd2419_detector_baseline_OG.utils import run_model_singleimage
 
+SCALING_FACTOR = 0.3333
+DRONE_IMAGE_RATIO = (640, 480)
+# dsize = (int(round(DRONE_IMAGE_RATIO[0] * SCALING_FACTOR)), int(round(DRONE_IMAGE_RATIO[1] * SCALING_FACTOR)))
+#     img = cv.resize(img, dsize, interpolation=cv.INTER_AREA)
+
+
 class feature_detected:
     def __init__(self, kp1, kp2, good, canon_img, drone_img, center_in_og_img, center_in_cropped_img, canon_center, drone_img_og):
         self.key_points = {1: kp1, 2: kp2}
@@ -87,6 +93,9 @@ def sift_feature_detection(canon_img_path, drone_img_path, bounding_box=None, cr
     canon_img, drone_img, center_in_cropped_img, center_in_og_img, canon_center,  drone_img_og =\
         image_preprocessing(canon_img_path, drone_img_path, bounding_box, crop)
 
+    dsize = (int(round(DRONE_IMAGE_RATIO[0] * SCALING_FACTOR)), int(round(DRONE_IMAGE_RATIO[1] * SCALING_FACTOR)))
+    canon_img = cv.resize(canon_img, dsize, interpolation=cv.INTER_AREA)
+
     # Initiate SIFT detector
     sift = cv.xfeatures2d.SIFT_create()
 
@@ -123,6 +132,10 @@ def surf_feature_detection(canon_img_path, drone_img_path, bounding_box=None, cr
     canon_img, drone_img, center_in_cropped_img, center_in_og_img, canon_center,  drone_img_og =\
         image_preprocessing(canon_img_path, drone_img_path, bounding_box, crop)
 
+
+
+    dsize = (int(round(DRONE_IMAGE_RATIO[0] * SCALING_FACTOR)), int(round(DRONE_IMAGE_RATIO[1] * SCALING_FACTOR)))
+    canon_img = cv.resize(canon_img, dsize, interpolation=cv.INTER_AREA)
     # Initiate SIFT detector
     surf = cv.xfeatures2d.SURF_create(100, 12, 12, False, False)
 
@@ -189,13 +202,14 @@ def get_orientation(see_image_points=False):
     canon_img_path = os.path.join(my_path, "dd2419_traffic_sign_pdfs", "follow_right.jpg")
     # drone_img_path = os.path.join(my_path, "dd2419_detector_baseline_OG/performance_test/test_images",
     #                               "0000097.jpg")
-    drone_img_path = "/home/robot/test_images/v2/follow_right/G6_00119.jpg"
+    canon_img_path = "/home/robot/dd2419_project/src/perception/scripts/dd2419_traffic_sign_pdfs/stop.jpg"
+    drone_img_path = "/home/robot/dd2419_project/src/perception/scripts/debug_photos/stop03.jpg"
     # drone_img_path = os.path.join(my_path, "dd2419_traffic_sign_pdfs", "G6_00138.jpg")
     #os.path.join(my_path, "dd2419_traffic_sign_pdfs", "G6_00138.jpg")#
 
     bounding_box = run_model_singleimage(drone_img_path, 0.5)[0][0]
     crop = False
-    crop_canon = True
+    crop_canon = False
 
     features_detected = surf_feature_detection(canon_img_path, drone_img_path, bounding_box, crop, display_result=True)
 
@@ -203,16 +217,35 @@ def get_orientation(see_image_points=False):
 
     axis = np.float32([[3, 0, 0], [0, 3, 0], [0, 0, 3]]).reshape(-1, 3)
     D, K, P, R = get_camera_values()
+
+
+    # K = np.array([300, 0.0, 240, 0.0, 160, 700, 0.0, 0.0, 1.0]).reshape(3, 3)
+
+
     camera_matrix = K
     dist_coeffs = D
 
 
 
+    #
+    # _, image_points = get_points(features_detected.key_points[1], features_detected.key_points[2],
+    #                                          features_detected.good_matches, features_detected.centers["canon_center"])
 
-    object_points, image_points = get_points(features_detected.key_points[1], features_detected.key_points[2],
-                                             features_detected.good_matches, features_detected.centers["canon_center"])
+    image_points = np.array([[182, 174], [270, 205], [338, 252], [306, 242], [206, 232]], dtype=np.float32)
+    object_center = np.array([225, 250]) * SCALING_FACTOR
+    object_points = np.zeros((image_points.shape[0], image_points.shape[1]+1))
 
+    canon2d_points = np.array([[24, 154], [191, 196], [348, 303], [287, 282], [65, 271]], dtype=np.float32) * SCALING_FACTOR
+    object_points[:, :2] = (canon2d_points - object_center) / 10.0
 
+    # if see_image_points:
+    #     plt.imshow(features_detected.images["drone_img"])
+    #     plt.scatter(image_points[:, 0], image_points[:, 1])
+    #     plt.show()
+    #     plt.imshow(features_detected.images["canon_img"])
+    #     plt.scatter(object_points[:, 0] * 10.0 + features_detected.centers["canon_center"][0],
+    #                 object_points[:, 1] * 10.0 + features_detected.centers["canon_center"][1])
+    #     plt.show()
 
     if see_image_points:
         plt.imshow(features_detected.images["drone_img"])
