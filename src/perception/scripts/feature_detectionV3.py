@@ -7,7 +7,7 @@ from dd2419_detector_baseline_OG.utils import run_model_singleimage
 
 SCALING_FACTOR = 0.3333
 DRONE_IMAGE_RATIO = (640, 640)
-
+PX_PER_CM = 11.3
 
 
 class feature_detected:
@@ -175,7 +175,7 @@ def get_points(kp1, kp2, good, object_center):
     canonical2D_kp = np.array([kp1[item[0].queryIdx].pt for item in good])
     image_points = np.array([kp2[item[0].trainIdx].pt for item in good], dtype=np.float32)
     object_points = np.zeros((image_points.shape[0], image_points.shape[1] + 1), dtype=np.float64)
-    object_points[:, :2] = (canonical2D_kp - object_center) / 10.0
+    object_points[:, :2] = (canonical2D_kp - object_center) / (PX_PER_CM * 100) # scale in meters
 
     return object_points, image_points
 
@@ -250,7 +250,7 @@ def get_orientation(see_image_points=False):
                                                     image_points.reshape(-1, 1, 2),
                                                     camera_matrix, dist_coeffs,
                                                     )
-        # print(len(inliers))
+    # print(tvec)
     # if see_image_points:
     #     plt.imshow(features_detected.images["drone_img"])
     #     plt.scatter(image_points[inliers, 0], image_points[inliers, 1])
@@ -264,7 +264,7 @@ def get_orientation(see_image_points=False):
     drone_sign_center_loc = features_detected.centers["center_in_og_img"]
     # if crop:
     #     drone_sign_center_loc = features_detected.centers["center_in_cropped_img"]
-    print(projected_axis)
+    # print(projected_axis)
     result_img = draw(features_detected.images["drone_img_og"], drone_sign_center_loc,
                       np.array(projected_axis + np.array(drone_sign_center_loc) - np.array(features_detected.centers["center_in_cropped_img"]), dtype=int))
     plt.imshow(result_img), plt.show()
