@@ -28,7 +28,7 @@ def draw(img, corners, imgpts):
 # %%
 my_path = os.path.abspath(os.path.dirname(__file__))
 canon_img_path = os.path.join(CWD, "dd2419_traffic_sign_pdfs/stop.jpg")
-drone_img_path = os.path.join(CWD, "debug_photos/stop13.jpg")
+drone_img_path = os.path.join(CWD, "debug_photos/stop_angle05.jpg")
 bounding_box = run_model_singleimage(drone_img_path, 0.5)[0][0]
 
 bb_info = {
@@ -76,7 +76,7 @@ matches = bf.knnMatch(des1, des2, k=2)
 # Apply ratio test
 good = []
 for m, n in matches:
-    if m.distance < 0.7 * n.distance:
+    if m.distance < 0.75 * n.distance:
         good.append([m])
 
 display_result = True
@@ -130,7 +130,7 @@ tvec_converted = RotX * tvec_converted
 rvec[0], rvec[1], rvec[2] = rvec_converted[0][0], rvec_converted[1][1], rvec_converted[2][2]
 tvec[0], tvec[1], tvec[2] = tvec_converted[0][0], tvec_converted[1][1], tvec_converted[2][2]
 
-result_img = draw(drone_img_og, center_in_drone_img, projected_axis)
-plt.imshow(result_img), plt.show()
+result_img2 = draw(drone_img_og, center_in_drone_img, projected_axis)
+plt.imshow(result_img2), plt.show()
 
 # %%

@@ -1,4 +1,4 @@
-import os.path
+import os
 import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
@@ -7,6 +7,7 @@ from dd2419_detector_baseline_OG.utils import run_model_singleimage
 
 SCALING_FACTOR = 0.3333
 DRONE_IMAGE_RATIO = (640, 480)
+CWD = os.path.abspath(os.path.dirname(__file__))
 # dsize = (int(round(DRONE_IMAGE_RATIO[0] * SCALING_FACTOR)), int(round(DRONE_IMAGE_RATIO[1] * SCALING_FACTOR)))
 #     img = cv.resize(img, dsize, interpolation=cv.INTER_AREA)
 
@@ -199,11 +200,11 @@ def get_points(kp1, kp2, good, object_center):
 
 def get_orientation(see_image_points=False):
     my_path = os.path.abspath(os.path.dirname(__file__))
-    canon_img_path = os.path.join(my_path, "dd2419_traffic_sign_pdfs", "follow_right.jpg")
+    # canon_img_path = os.path.join(my_path, "dd2419_traffic_sign_pdfs", "follow_right.jpg")
     # drone_img_path = os.path.join(my_path, "dd2419_detector_baseline_OG/performance_test/test_images",
     #                               "0000097.jpg")
-    canon_img_path = "/home/robot/dd2419_project/src/perception/scripts/dd2419_traffic_sign_pdfs/stop.jpg"
-    drone_img_path = "/home/robot/dd2419_project/src/perception/scripts/debug_photos/stop03.jpg"
+    canon_img_path = os.path.join(CWD, "dd2419_traffic_sign_pdfs/stop.jpg")
+    drone_img_path = os.path.join(CWD, "debug_photos/stop03.jpg")
     # drone_img_path = os.path.join(my_path, "dd2419_traffic_sign_pdfs", "G6_00138.jpg")
     #os.path.join(my_path, "dd2419_traffic_sign_pdfs", "G6_00138.jpg")#
 
