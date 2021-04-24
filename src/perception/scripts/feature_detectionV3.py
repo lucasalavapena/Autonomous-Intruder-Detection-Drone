@@ -1,4 +1,4 @@
-import os
+import os.path
 import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
@@ -6,10 +6,8 @@ import time
 from dd2419_detector_baseline_OG.utils import run_model_singleimage
 
 SCALING_FACTOR = 0.3333
-DRONE_IMAGE_RATIO = (640, 480)
-CWD = os.path.abspath(os.path.dirname(__file__))
-# dsize = (int(round(DRONE_IMAGE_RATIO[0] * SCALING_FACTOR)), int(round(DRONE_IMAGE_RATIO[1] * SCALING_FACTOR)))
-#     img = cv.resize(img, dsize, interpolation=cv.INTER_AREA)
+DRONE_IMAGE_RATIO = (640, 640)
+PX_PER_CM = 11.3
 
 
 class feature_detected:
@@ -39,6 +37,8 @@ def image_preprocessing(canon_img_path, drone_img_path, bounding_box=None, crop=
     canon_img = cv.cvtColor(canon_img, cv.COLOR_BGR2GRAY)
     drone_img = cv.cvtColor(drone_img, cv.COLOR_BGR2GRAY)
 
+    dsize = (int(round(DRONE_IMAGE_RATIO[0] * SCALING_FACTOR)), int(round(DRONE_IMAGE_RATIO[1] * SCALING_FACTOR)))
+    canon_img = cv.resize(canon_img, dsize, interpolation=cv.INTER_AREA)
     # plt.imshow(canon_img), plt.show()
     #
     # plt.imshow(drone_img), plt.show()
@@ -53,10 +53,10 @@ def image_preprocessing(canon_img_path, drone_img_path, bounding_box=None, crop=
         bottom_y = int(top_y - round(height))
         if crop:
             drone_img = drone_img[top_y: bottom_y, top_x: bottom_x]
-
-        dsize = (int(round(bounding_box['width'].item())),
-                 int(round(bounding_box['height'].item())))  # cv_im_cropped.shape[0:2]#(640, 480)
-        canon_img = cv.resize(canon_img, dsize, interpolation=cv.INTER_AREA)
+        #
+        # dsize = (int(round(bounding_box['width'].item())),
+        #          int(round(bounding_box['height'].item())))  # cv_im_cropped.shape[0:2]#(640, 480)
+        # canon_img = cv.resize(canon_img, dsize, interpolation=cv.INTER_AREA)
 
         center_in_og_img = ((top_x + bottom_x)/2, (top_y + bottom_y)/2)
         center_in_cropped_img = ((bottom_x - top_x)/2, (bottom_y - top_y)/2)
@@ -74,7 +74,7 @@ def image_preprocessing(canon_img_path, drone_img_path, bounding_box=None, crop=
     return canon_img, drone_img, center_in_cropped_img,\
            center_in_og_img, canon_center, drone_img_og
 
-def get_matches(des1, des2, canon_img, kp1, drone_img, kp2, display_result=False):
+def get_matches(des1, des2, canon_img, kp1, drone_img, kp2, ratio_factor=0.75, display_result=False):
     # BFMatcher with default params
     bf = cv.BFMatcher()
     matches = bf.knnMatch(des1, des2, k=2)
@@ -82,7 +82,7 @@ def get_matches(des1, des2, canon_img, kp1, drone_img, kp2, display_result=False
     # Apply ratio test
     good = []
     for m, n in matches:
-        if m.distance < 0.5 * n.distance:
+        if m.distance < ratio_factor * n.distance:
             good.append([m])
 
     if display_result:
@@ -90,12 +90,11 @@ def get_matches(des1, des2, canon_img, kp1, drone_img, kp2, display_result=False
         plt.imshow(img3), plt.show()
     return good
 
-def sift_feature_detection(canon_img_path, drone_img_path, bounding_box=None, crop=False, display_result=False):
-    canon_img, drone_img, center_in_cropped_img, center_in_og_img, canon_center,  drone_img_og =\
-        image_preprocessing(canon_img_path, drone_img_path, bounding_box, crop)
+def sift_feature_detection(canon_img, drone_img, ratio_factor=0.75, display_result=False):
 
-    dsize = (int(round(DRONE_IMAGE_RATIO[0] * SCALING_FACTOR)), int(round(DRONE_IMAGE_RATIO[1] * SCALING_FACTOR)))
-    canon_img = cv.resize(canon_img, dsize, interpolation=cv.INTER_AREA)
+
+    # dsize = (int(round(DRONE_IMAGE_RATIO[0] * SCALING_FACTOR)), int(round(DRONE_IMAGE_RATIO[1] * SCALING_FACTOR)))
+    # canon_img = cv.resize(canon_img, dsize, interpolation=cv.INTER_AREA)
 
     # Initiate SIFT detector
     sift = cv.xfeatures2d.SIFT_create()
@@ -105,16 +104,14 @@ def sift_feature_detection(canon_img_path, drone_img_path, bounding_box=None, cr
     kp2, des2 = sift.detectAndCompute(drone_img, None)
 
 
-    good = get_matches(des1, des2, canon_img, kp1, drone_img, kp2, display_result=display_result)
+    good = get_matches(des1, des2, canon_img, kp1, drone_img, kp2, ratio_factor=ratio_factor,
+                       display_result=display_result)
 
-    return feature_detected(kp1, kp2, good, canon_img, drone_img, center_in_og_img, center_in_cropped_img,
-                            canon_center, drone_img_og)
+    return kp1, kp2, good
 
 
 
-def orb_feature_detection(canon_img_path, drone_img_path, bounding_box=None, crop=False, display_result=False):
-    canon_img, drone_img, center_in_cropped_img, center_in_og_img, canon_center,  drone_img_og =\
-        image_preprocessing(canon_img_path, drone_img_path, bounding_box, crop)
+def orb_feature_detection(canon_img, drone_img, ratio_factor=0.75, display_result=False):
 
     # Initiate SIFT detector
     orb = cv.ORB_create() # 500, 1.2, 8, 31, 0, 2
@@ -123,20 +120,18 @@ def orb_feature_detection(canon_img_path, drone_img_path, bounding_box=None, cro
     kp1, des1 = orb.detectAndCompute(canon_img, None)
     kp2, des2 = orb.detectAndCompute(drone_img, None)
 
-    good = get_matches(des1, des2, canon_img, kp1, drone_img, kp2, display_result=display_result)
+    good = get_matches(des1, des2, canon_img, kp1, drone_img, kp2, ratio_factor=ratio_factor,
+                       display_result=display_result)
+
+    return kp1, kp2, good
 
 
-    return feature_detected(kp1, kp2, good, canon_img, drone_img, center_in_og_img, center_in_cropped_img,
-                            canon_center, drone_img_og)
-
-def surf_feature_detection(canon_img_path, drone_img_path, bounding_box=None, crop=False, display_result=False):
-    canon_img, drone_img, center_in_cropped_img, center_in_og_img, canon_center,  drone_img_og =\
-        image_preprocessing(canon_img_path, drone_img_path, bounding_box, crop)
+def surf_feature_detection(canon_img, drone_img, ratio_factor=0.75, display_result=False):
 
 
 
-    dsize = (int(round(DRONE_IMAGE_RATIO[0] * SCALING_FACTOR)), int(round(DRONE_IMAGE_RATIO[1] * SCALING_FACTOR)))
-    canon_img = cv.resize(canon_img, dsize, interpolation=cv.INTER_AREA)
+    # dsize = (int(round(DRONE_IMAGE_RATIO[0] * SCALING_FACTOR)), int(round(DRONE_IMAGE_RATIO[1] * SCALING_FACTOR)))
+    # canon_img = cv.resize(canon_img, dsize, interpolation=cv.INTER_AREA)
     # Initiate SIFT detector
     surf = cv.xfeatures2d.SURF_create(100, 12, 12, False, False)
 
@@ -144,15 +139,12 @@ def surf_feature_detection(canon_img_path, drone_img_path, bounding_box=None, cr
     kp1, des1 = surf.detectAndCompute(canon_img, None)
     kp2, des2 = surf.detectAndCompute(drone_img, None)
 
-    good = get_matches(des1, des2, canon_img, kp1, drone_img, kp2, display_result=display_result)
+    good = get_matches(des1, des2, canon_img, kp1, drone_img, kp2, ratio_factor=ratio_factor,
+                       display_result=display_result)
 
+    return kp1, kp2, good
 
-    return feature_detected(kp1, kp2, good, canon_img, drone_img, center_in_og_img, center_in_cropped_img,
-                            canon_center, drone_img_og)
-
-def BRIEF_feature_detection(canon_img_path, drone_img_path, bounding_box=None, crop=False, display_result=False):
-    canon_img, drone_img, center_in_cropped_img, center_in_og_img, canon_center,  drone_img_og =\
-        image_preprocessing(canon_img_path, drone_img_path, bounding_box, crop)
+def BRIEF_feature_detection(canon_img, drone_img, ratio_factor=0.75, display_result=False):
 
     # Initiate SIFT detector
     star = cv.xfeatures2d.StarDetector_create()
@@ -168,11 +160,10 @@ def BRIEF_feature_detection(canon_img_path, drone_img_path, bounding_box=None, c
     kp2, des2 = brief.compute(drone_img, kp2)
 
 
-    good = get_matches(des1, des2, canon_img, kp1, drone_img, kp2, display_result=display_result)
+    good = get_matches(des1, des2, canon_img, kp1, drone_img, kp2, ratio_factor=ratio_factor,
+                       display_result=display_result)
 
-
-    return feature_detected(kp1, kp2, good, canon_img, drone_img, center_in_og_img, center_in_cropped_img,
-                            canon_center, drone_img_og)
+    return kp1, kp2, good
 
 def draw(img, corners, imgpts):
     img = cv.line(img, corners, tuple(imgpts[0].ravel()), (255, 0, 0), 5)
@@ -184,7 +175,7 @@ def get_points(kp1, kp2, good, object_center):
     canonical2D_kp = np.array([kp1[item[0].queryIdx].pt for item in good])
     image_points = np.array([kp2[item[0].trainIdx].pt for item in good], dtype=np.float32)
     object_points = np.zeros((image_points.shape[0], image_points.shape[1] + 1), dtype=np.float64)
-    object_points[:, :2] = (canonical2D_kp - object_center) / 10.0
+    object_points[:, :2] = (canonical2D_kp - object_center) / (PX_PER_CM * 100) # scale in meters
 
     return object_points, image_points
 
@@ -200,19 +191,25 @@ def get_points(kp1, kp2, good, object_center):
 
 def get_orientation(see_image_points=False):
     my_path = os.path.abspath(os.path.dirname(__file__))
-    # canon_img_path = os.path.join(my_path, "dd2419_traffic_sign_pdfs", "follow_right.jpg")
+    canon_img_path = os.path.join(my_path, "dd2419_traffic_sign_pdfs", "follow_right.jpg")
     # drone_img_path = os.path.join(my_path, "dd2419_detector_baseline_OG/performance_test/test_images",
     #                               "0000097.jpg")
-    canon_img_path = os.path.join(CWD, "dd2419_traffic_sign_pdfs/stop.jpg")
-    drone_img_path = os.path.join(CWD, "debug_photos/stop03.jpg")
+    canon_img_path = "/home/robot/dd2419_project/src/perception/scripts/dd2419_traffic_sign_pdfs/stop.jpg"
+    drone_img_path = "/home/robot/dd2419_project/src/perception/scripts/debug_photos/stop_angle05.jpg"
     # drone_img_path = os.path.join(my_path, "dd2419_traffic_sign_pdfs", "G6_00138.jpg")
     #os.path.join(my_path, "dd2419_traffic_sign_pdfs", "G6_00138.jpg")#
 
-    bounding_box = run_model_singleimage(drone_img_path, 0.5)[0][0]
-    crop = False
+    bounding_box = run_model_singleimage(drone_img_path, 0.7)[0][0]
+    crop = True
     crop_canon = False
 
-    features_detected = surf_feature_detection(canon_img_path, drone_img_path, bounding_box, crop, display_result=True)
+    canon_img, drone_img, center_in_cropped_img, center_in_og_img, canon_center,  drone_img_og =\
+        image_preprocessing(canon_img_path, drone_img_path, bounding_box, crop)
+
+    kp1, kp2, good = sift_feature_detection(canon_img, drone_img, ratio_factor=0.75, display_result=True)
+
+    features_detected = feature_detected(kp1, kp2, good, canon_img, drone_img, center_in_og_img, center_in_cropped_img,
+                            canon_center, drone_img_og)
 
     result_img = features_detected.images["drone_img"] # drone image
 
@@ -229,24 +226,16 @@ def get_orientation(see_image_points=False):
 
 
     #
-    # _, image_points = get_points(features_detected.key_points[1], features_detected.key_points[2],
-    #                                          features_detected.good_matches, features_detected.centers["canon_center"])
+    object_points, image_points = get_points(features_detected.key_points[1], features_detected.key_points[2],
+                                             features_detected.good_matches, features_detected.centers["canon_center"])
 
-    image_points = np.array([[182, 174], [270, 205], [338, 252], [306, 242], [206, 232]], dtype=np.float32)
-    object_center = np.array([225, 250]) * SCALING_FACTOR
-    object_points = np.zeros((image_points.shape[0], image_points.shape[1]+1))
+    # image_points = np.array([[182, 174], [270, 205], [338, 252], [306, 242], [206, 232]], dtype=np.float32)
+    # object_center = np.array([225, 250]) * SCALING_FACTOR
+    # object_points = np.zeros((image_points.shape[0], image_points.shape[1]+1))
+    #
+    # canon2d_points = np.array([[24, 154], [191, 196], [348, 303], [287, 282], [65, 271]], dtype=np.float32) * SCALING_FACTOR
+    # object_points[:, :2] = (canon2d_points - object_center) / 10.0
 
-    canon2d_points = np.array([[24, 154], [191, 196], [348, 303], [287, 282], [65, 271]], dtype=np.float32) * SCALING_FACTOR
-    object_points[:, :2] = (canon2d_points - object_center) / 10.0
-
-    # if see_image_points:
-    #     plt.imshow(features_detected.images["drone_img"])
-    #     plt.scatter(image_points[:, 0], image_points[:, 1])
-    #     plt.show()
-    #     plt.imshow(features_detected.images["canon_img"])
-    #     plt.scatter(object_points[:, 0] * 10.0 + features_detected.centers["canon_center"][0],
-    #                 object_points[:, 1] * 10.0 + features_detected.centers["canon_center"][1])
-    #     plt.show()
 
     if see_image_points:
         plt.imshow(features_detected.images["drone_img"])
@@ -256,15 +245,16 @@ def get_orientation(see_image_points=False):
         plt.scatter(object_points[:, 0] * 10.0 + features_detected.centers["canon_center"][0],
                     object_points[:, 1] * 10.0 + features_detected.centers["canon_center"][1])
         plt.show()
-
+    # for i in range(20):
     retval, rvec, tvec, inliers = cv.solvePnPRansac(object_points.reshape(-1, 1, 3),
                                                     image_points.reshape(-1, 1, 2),
                                                     camera_matrix, dist_coeffs,
                                                     )
-    if see_image_points:
-        plt.imshow(features_detected.images["drone_img"])
-        plt.scatter(image_points[inliers, 0], image_points[inliers, 1])
-        plt.show()
+    # print(tvec)
+    # if see_image_points:
+    #     plt.imshow(features_detected.images["drone_img"])
+    #     plt.scatter(image_points[inliers, 0], image_points[inliers, 1])
+    #     plt.show()
 
     # retval, rvec, tvec, inliers = cv.solvePnPRansac(object_points, image_points, camera_matrix, dist_coeffs)
     rotation_matrix, _ = cv.Rodrigues(rvec)
@@ -272,10 +262,11 @@ def get_orientation(see_image_points=False):
     projected_axis, jacobian = cv.projectPoints(axis, rvec, tvec, camera_matrix, dist_coeffs)
 
     drone_sign_center_loc = features_detected.centers["center_in_og_img"]
-    if crop:
-        drone_sign_center_loc = features_detected.centers["center_in_cropped_img"]
-
-    result_img = draw(result_img, drone_sign_center_loc, projected_axis)
+    # if crop:
+    #     drone_sign_center_loc = features_detected.centers["center_in_cropped_img"]
+    # print(projected_axis)
+    result_img = draw(features_detected.images["drone_img_og"], drone_sign_center_loc,
+                      np.array(projected_axis + np.array(drone_sign_center_loc) - np.array(features_detected.centers["center_in_cropped_img"]), dtype=int))
     plt.imshow(result_img), plt.show()
 
 
