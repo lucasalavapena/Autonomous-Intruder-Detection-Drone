@@ -195,7 +195,7 @@ def get_orientation(see_image_points=False):
     # drone_img_path = os.path.join(my_path, "dd2419_detector_baseline_OG/performance_test/test_images",
     #                               "0000097.jpg")
     canon_img_path = "/home/robot/dd2419_project/src/perception/scripts/dd2419_traffic_sign_pdfs/stop.jpg"
-    drone_img_path = "/home/robot/dd2419_project/src/perception/scripts/debug_photos/stop_angle05.jpg"
+    drone_img_path = "/home/robot/dd2419_project/src/perception/scripts/debug_photos/stop_angle17.jpg"
     # drone_img_path = os.path.join(my_path, "dd2419_traffic_sign_pdfs", "G6_00138.jpg")
     #os.path.join(my_path, "dd2419_traffic_sign_pdfs", "G6_00138.jpg")#
 
@@ -206,7 +206,7 @@ def get_orientation(see_image_points=False):
     canon_img, drone_img, center_in_cropped_img, center_in_og_img, canon_center,  drone_img_og =\
         image_preprocessing(canon_img_path, drone_img_path, bounding_box, crop)
 
-    kp1, kp2, good = sift_feature_detection(canon_img, drone_img, ratio_factor=0.75, display_result=True)
+    kp1, kp2, good = sift_feature_detection(canon_img, drone_img, ratio_factor=0.75, display_result=False)
 
     features_detected = feature_detected(kp1, kp2, good, canon_img, drone_img, center_in_og_img, center_in_cropped_img,
                             canon_center, drone_img_og)
@@ -225,9 +225,14 @@ def get_orientation(see_image_points=False):
 
 
 
-    #
+    # get feature object and image points (from cropped image)
     object_points, image_points = get_points(features_detected.key_points[1], features_detected.key_points[2],
                                              features_detected.good_matches, features_detected.centers["canon_center"])
+
+    # reconvert images points from cropped image to original image location
+    image_points = image_points + np.array([features_detected.centers["center_in_og_img"]]) - np.array(features_detected.centers["center_in_cropped_img"])
+
+
 
     # image_points = np.array([[182, 174], [270, 205], [338, 252], [306, 242], [206, 232]], dtype=np.float32)
     # object_center = np.array([225, 250]) * SCALING_FACTOR
@@ -250,7 +255,7 @@ def get_orientation(see_image_points=False):
                                                     image_points.reshape(-1, 1, 2),
                                                     camera_matrix, dist_coeffs,
                                                     )
-    # print(tvec)
+    print(tvec)
     # if see_image_points:
     #     plt.imshow(features_detected.images["drone_img"])
     #     plt.scatter(image_points[inliers, 0], image_points[inliers, 1])
@@ -265,8 +270,10 @@ def get_orientation(see_image_points=False):
     # if crop:
     #     drone_sign_center_loc = features_detected.centers["center_in_cropped_img"]
     # print(projected_axis)
-    result_img = draw(features_detected.images["drone_img_og"], drone_sign_center_loc,
-                      np.array(projected_axis + np.array(drone_sign_center_loc) - np.array(features_detected.centers["center_in_cropped_img"]), dtype=int))
+    actual_projected_Axis = projected_axis # np.array(projected_axis + np.array(drone_sign_center_loc) - np.array(features_detected.centers["center_in_cropped_img"]), dtype=int)
+    # result_img = draw(features_detected.images["drone_img_og"], features_detected.centers["center_in_cropped_img"], projected_axis)
+    result_img = draw(features_detected.images["drone_img_og"], drone_sign_center_loc, actual_projected_Axis)
+
     plt.imshow(result_img), plt.show()
 
 
