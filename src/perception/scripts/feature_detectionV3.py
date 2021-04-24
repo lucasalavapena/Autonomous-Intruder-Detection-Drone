@@ -186,9 +186,12 @@ def get_orientation(see_image_points=False):
     # drone_img_path = os.path.join(my_path, "dd2419_detector_baseline_OG/performance_test/test_images",
     #                               "0000097.jpg")
     canon_img_path = "/home/robot/dd2419_project/src/perception/scripts/dd2419_traffic_sign_pdfs/stop.jpg"
-    drone_img_path = "/home/robot/dd2419_project/src/perception/scripts/debug_photos/stop_angle04.jpg"
+    # drone_img_path = "/home/robot/dd2419_project/src/perception/scripts/debug_photos/stop13.jpg"
 
-    bounding_box = run_model_singleimage(drone_img_path, 0.7)[0][0]
+    drone_img_path = "/home/robot/dd2419_project/src/perception/scripts/debug_photos/stop_angle05.jpg"
+
+    bounding_box = run_model_singleimage(drone_img_path, 0.5)[0][0]
+    print(bounding_box)
     crop = True
     crop_canon = False
 
@@ -212,10 +215,12 @@ def get_orientation(see_image_points=False):
     object_points, image_points = get_points(features_detected.key_points[1], features_detected.key_points[2],
                                              features_detected.good_matches, features_detected.centers["canon_center"])
 
+    print("object points:\n{}\nimage_points:\n{}".format(object_points, image_points))
+
     # reconvert images points from cropped image to original image location
     image_points = image_points + np.array([features_detected.centers["center_in_og_img"]]) - np.array(features_detected.centers["center_in_cropped_img"])
 
-
+    print("do math correctly", np.array([features_detected.centers["center_in_og_img"]]),np.array(features_detected.centers["center_in_cropped_img"]))
 
     if see_image_points:
         plt.imshow(features_detected.images["drone_img"])
@@ -247,7 +252,7 @@ def get_orientation(see_image_points=False):
 
 
 if __name__ == "__main__":
-    get_orientation(True)
+    get_orientation(False)
 
 
 
