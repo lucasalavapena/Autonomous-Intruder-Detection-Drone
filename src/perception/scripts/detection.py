@@ -22,6 +22,7 @@ from torchvision import transforms
 from dd2419_detector_baseline_OG import utils
 from dd2419_detector_baseline_OG.detector import Detector
 
+PX_PER_CM = 11.3
 
 LABELS_PATH = "src/perception/scripts/dd2419_detector_baseline_OG/dd2419_coco/annotations/training.json"
 CWD = os.path.abspath(os.path.dirname(__file__))
@@ -80,7 +81,7 @@ class image_converter:
 
     def unpickle(self):
         # Unpickling and deserializing precomputed featurepoints
-        with open(os.path.join(CWD, 'features.pickle'), 'rb') as handle:
+        with open(os.path.join(CWD, PICKLE_FILE), 'rb') as handle:
             features = pickle.load(handle)
 
         signs = features.keys()
@@ -106,7 +107,7 @@ class image_converter:
 
         return unpickled
 
-    def get_corners_and_cat(self, bb):
+    def get_corners_and_cat(self, bb, img):
         x = int(round(bb['x']))
         y = int(round(bb['y']))
         height = int(round(bb["height"]*-1))  # shitfix
@@ -123,7 +124,10 @@ class image_converter:
         top_right = tuple(i if i > 0 else 0 for i in top_right)
         bottom_left = tuple(i if i > 0 else 0 for i in bottom_left)
         bottom_right = tuple(i if i > 0 else 0 for i in bottom_right)
-        return top_left, top_right, bottom_left, bottom_right, center, category
+
+        cropped_img = img[top_left[1]: bottom_right[1], top_left[0]: bottom_right[0]]
+
+        return top_left, top_right, bottom_left, bottom_right, center, category, cropped_img
 
     def draw_bb_and_cat(self, image, top_left, top_right, bottom_left, bottom_right, category):
         cv2.line(image, top_left, top_right, (0, 0, 255), 2)  # red
@@ -145,6 +149,7 @@ class image_converter:
         img = cv2.line(img, bb_center_in_drone_img, tuple(
             imgpts[2].ravel()), (0, 0, 255), 5)
         return img
+
 
     def detect_features(self, img, detector="SURF"):
         if detector == "SURF":
@@ -186,7 +191,7 @@ class image_converter:
             [drone_kp[item[0].trainIdx].pt for item in matches], dtype=np.float32)
         object_points = np.zeros(
             (image_points.shape[0], image_points.shape[1] + 1), dtype=np.float64)
-        object_points[:, :2] = (canonical2D_kp - canonical_center) / 10.0 # TODO this is random
+        object_points[:, :2] = (canonical2D_kp - canonical_center) / (PX_PER_CM * 100) # TODO this is random
         return object_points, image_points
 
     def callback(self, data):
@@ -210,19 +215,19 @@ class image_converter:
         with torch.no_grad():
             out = self.detector(torch_im)  # .cpu()
 
-            # detect bounding box with threshold
+            # detect bounding box with thresholdr_bb
             bbs = self.detector.decode_output(out[0], NN_THRESHOLD, multiple_bb=True)
 
             if bbs:
                 for bb in bbs[0]:
-                    top_left, top_right, bottom_left, bottom_right, center, category = self.get_corners_and_cat(
-                        bb)
+                    # image pre-processing
+                    top_left, top_right, bottom_left, bottom_right, center_in_og_img, category, cropped_img = self.get_corners_and_cat(
+                        bb, cv_image)
                     self.draw_bb_and_cat(
                         cv_image, top_left, top_right, bottom_left, bottom_right, category)
-
                     # ----------------------- REVISED FEATURE DETECTION ----------------------
                     # detect features
-                    kp, des = self.detect_features(cv_image, detector=DETECTOR)
+                    kp, des = self.detect_features(cropped_img, detector=DETECTOR)
                     sign = category.replace(" ", "_")
                     # find matches
                     matches = self.get_matches(
@@ -231,7 +236,7 @@ class image_converter:
                         self.features[sign][DETECTOR]['kp'],
                         kp,
                         self.features[sign]['IMAGE'],
-                        cv_image,
+                        cropped_img,
                         display_result=False
                     )
 
@@ -243,6 +248,12 @@ class image_converter:
                             matches,
                             self.features[sign]['CENTER']
                         )
+
+                        # Convert image points from cropped to actual image
+                        center_in_cropped_img = (bottom_right[0] - top_left[0], bottom_right[1] - top_left[1])
+                        image_points = image_points + np.array(center_in_og_img) - np.array(center_in_cropped_img)
+
+
                         # SolvePnPRansac
                         retval, rvec, tvec, inliers = cv2.solvePnPRansac(
                             object_points.reshape(-1, 1, 3), 
@@ -254,50 +265,18 @@ class image_converter:
                         norm = np.linalg.norm(tvec)
                         if norm > 30 or norm < 1e-10:
                             continue
-                        
-                        # Scaling experiments
-                        # rvec *= 57.2957795131
-                        # tvec *=  25 / bb['width'].item() #tvec / 480
 
-                        # # Python implementation of C++ code below, not currently working but maybe a good start?
-                        # rodrigues, _ = cv2.Rodrigues(rvec)
-                        # rvec_converted, _ = cv2.Rodrigues(rodrigues.T)
-                        # rvec_converted = RotX * rvec_converted
-
-                        # tvec_converted = -rodrigues.T * tvec
-                        # tvec_converted = RotX * tvec_converted
-
-                        # rvec[0], rvec[1], rvec[2] = rvec_converted[0][0], rvec_converted[1][1], rvec_converted[2][2]
-                        # tvec[0], tvec[1], tvec[2] = tvec_converted[0][0], tvec_converted[1][1], tvec_converted[2][2]
-
-                        # Stolen C++ code [https://stackoverflow.com/questions/44008003/camera-pose-estimation-from-homography-or-with-solvepnp-function]
-                        # cv::Mat R;
-                        # cv::Rodrigues(rvec, R);
-
-                        # R = R.t();  // rotation of inverse
-                        # Mat rvecConverted;
-                        # Rodrigues(R, rvecConverted); //
-                        # std::cout << "rvec in world coords:\n" << rvecConverted << std::endl;
-                        # rvecConverted = RotX * rvecConverted;
-                        # std::cout << "rvec scenekit :\n" << rvecConverted << std::endl;
-
-                        # Mat tvecConverted = -R * tvec;
-                        # std::cout << "tvec in world coords:\n" << tvecConverted << std::endl;
-                        # tvecConverted = RotX * tvecConverted;
-                        # std::cout << "tvec scenekit :\n" << tvecConverted << std::endl;
-
-                        # SCNVector4 rotationVector = SCNVector4Make(rvecConverted.at<double>(0), rvecConverted.at<double>(1), rvecConverted.at<double>(2), norm(rvecConverted));
-                        # SCNVector3 translationVector = SCNVector3Make(tvecConverted.at<double>(0), tvecConverted.at<double>(1), tvecConverted.at<double>(2));
 
                         # project axis with result from ransac
                         projected_axis, jacobian = cv2.projectPoints(
                             AXIS, rvec, tvec, self.camera_params["K"], self.camera_params["D"])
-
+                        print(tvec)
                         # draw axis on drone image
                         bb_center_in_drone_img = (
                             bb['x'] + bb['width']/2, bb['y'] + bb['height']/2)
                         bb_center_in_drone_img = tuple(
                             int(i.item()) for i in bb_center_in_drone_img)
+
                         cv_image = self.draw(
                             cv_image, bb_center_in_drone_img, projected_axis)
                         # ------------------------------------------------------------------------
@@ -336,6 +315,8 @@ def main(args):
 
 DETECTOR = rospy.get_param("~feature_detector", "SURF")
 HARDWARE = rospy.get_param('~inference_hardware', 'cpu')
+PICKLE_FILE = rospy.get_param('~pickle_file', 'lucas-features.pickle')
+
 NN_THRESHOLD = rospy.get_param("~nn_theshold", 0.75)
 
 if __name__ == '__main__':

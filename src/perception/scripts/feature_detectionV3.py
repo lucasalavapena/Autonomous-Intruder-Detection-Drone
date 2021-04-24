@@ -186,7 +186,7 @@ def get_orientation(see_image_points=False):
     # drone_img_path = os.path.join(my_path, "dd2419_detector_baseline_OG/performance_test/test_images",
     #                               "0000097.jpg")
     canon_img_path = "/home/robot/dd2419_project/src/perception/scripts/dd2419_traffic_sign_pdfs/stop.jpg"
-    drone_img_path = "/home/robot/dd2419_project/src/perception/scripts/debug_photos/stop_angle17.jpg"
+    drone_img_path = "/home/robot/dd2419_project/src/perception/scripts/debug_photos/stop_angle04.jpg"
 
     bounding_box = run_model_singleimage(drone_img_path, 0.7)[0][0]
     crop = True
