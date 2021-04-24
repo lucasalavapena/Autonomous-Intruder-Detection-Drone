@@ -16,6 +16,7 @@ from cv_bridge import CvBridge, CvBridgeError
 from tf.transformations import quaternion_from_euler
 import torchvision.transforms.functional as TF
 
+import time
 import torch
 from torchvision import transforms
 
@@ -38,7 +39,7 @@ Ryz = np.array([[ 0.20076997, -0.40057632,  0.89399666],
        [ 0.40057632, -0.79923003, -0.44807362]])
 
 
-CV_IMAGE = cv2.imread("/home/robot/dd2419_project/src/perception/scripts/debug_photos/stop_angle05.jpg")
+# CV_IMAGE = cv2.imread("/home/robot/dd2419_project/src/perception/scripts/debug_photos/stop_angle05.jpg")
 class image_converter:
 
     def __init__(self, device="cpu"):
@@ -205,9 +206,11 @@ class image_converter:
     def callback(self, data):
         # Convert the image from OpenCV to ROS format
         try:
-            # cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
-            cv_image = CV_IMAGE.copy()
-            cv_image_nn = PIL.Image.open("/home/robot/dd2419_project/src/perception/scripts/debug_photos/stop_angle05.jpg") #CV_IMAGE.copy()
+            cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+            # cv_image = CV_IMAGE.copy()
+            start_time = time.time()
+            cv_image_nn = PIL.Image.fromarray(cv_image)#PIL.Image.open("/home/robot/dd2419_project/src/perception/scripts/debug_photos/stop_angle05.jpg") #CV_IMAGE.copy()
+            print("took {}s to convert image to PIL".format(time.time()-start_time))
         except CvBridgeError as e:
             print(e)
 
@@ -232,6 +235,8 @@ class image_converter:
             bbs = self.detector.decode_output(out[0], NN_THRESHOLD, multiple_bb=True)
             if bbs:
                 for bb in bbs[0]:
+                    start_time = time.time()
+
                     # image pre-processing
                     top_left, top_right, bottom_left, bottom_right, center_in_og_img, category, cropped_img = self.get_corners_and_cat(
                         bb, cv_image)
@@ -339,6 +344,9 @@ class image_converter:
 
                         cv_image = self.draw(
                             cv_image, bb_center_in_drone_img, projected_axis)
+
+                        print("took {}s to compute and draw 6d pose".format(time.time() - start_time))
+
                         # ------------------------------------------------------------------------
 
                         # ---------------------- Pose Creation and publication  ----------------------
