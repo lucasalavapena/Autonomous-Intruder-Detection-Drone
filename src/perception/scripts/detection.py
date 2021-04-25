@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import PIL.Image
 import tf
 from sensor_msgs.msg import Image
+from std_msgs.msg import String
 from geometry_msgs.msg import TransformStamped
 from cv_bridge import CvBridge, CvBridgeError
 from tf.transformations import quaternion_from_euler
@@ -32,7 +33,7 @@ MODEL_PATH = os.path.join(
 # MODEL_PATH = os.path.join(
 #     CWD, "../models/det_2021-02-26_09-39-26-142893.pt")  # old model
 AXIS = np.float32([[3, 0, 0], [0, 3, 0], [0, 0, 3]]).reshape(-1, 3)
-RotX = np.float32([[1, 0, 0], [0, -1, 0], [0, 0, -1]]) # Rotation matrix about x-axis
+RotX = np.float32([[1, 0, 0], [0, -1,0], [0, 0, -1]]) # Rotation matrix about x-axis
 
 Ryz = np.array([[ 0.20076997, -0.40057632,  0.89399666],
        [-0.89399666, -0.44807362,  0.        ],
@@ -45,6 +46,7 @@ class image_converter:
     def __init__(self, device="cpu"):
         # Publishers
         self.image_pub = rospy.Publisher("/myresult", Image, queue_size=2)
+        self.sign_pub = rospy.Publisher("/sign_poses", String, queue_size=50)
         self.br = tf.TransformBroadcaster()
 
         self.bridge = CvBridge()
@@ -287,7 +289,7 @@ class image_converter:
                         display_result=False
                     )
 
-                    pretty_good = [(i[0].distance, i[0].imgIdx, i[0].queryIdx, i[0].trainIdx) for i in matches]
+                    # pretty_good = [(i[0].distance, i[0].imgIdx, i[0].queryIdx, i[0].trainIdx) for i in matches]
                     # print(len(pretty_good))
                     # for j in pretty_good:
                     #     print(j)
@@ -305,7 +307,7 @@ class image_converter:
                         # Convert image points from cropped to actual image
                         center_in_cropped_img = ((bottom_right[0] - top_left[0])/2, (bottom_right[1] - top_left[1])/2)
                         image_points = image_points + np.array(center_in_og_img) - np.array(center_in_cropped_img)
-                        print("do math correctly", np.array(center_in_og_img), np.array(center_in_cropped_img))
+                        # print("do math correctly", np.array(center_in_og_img), np.array(center_in_cropped_img))
 
 
                         # SolvePnPRansac
@@ -348,19 +350,26 @@ class image_converter:
                         print("took {}s to compute and draw 6d pose".format(time.time() - start_time))
 
                         # ------------------------------------------------------------------------
+                        sign_msg = "{SIGN},{STAMP},{FRAME},{TVEC},{RVEC}".format(SIGN=sign,
+                                                                                 STAMP=rospy.Time.now(),
+                                                                                 FRAME="cf1/camera_link",
+                                                                                 TVEC=tvec.tostring(),
+                                                                                 RVEC=rvec.tostring())
+                        self.sign_pub.publish(sign_msg)
+
 
                         # ---------------------- Pose Creation and publication  ----------------------
-                        t = TransformStamped()
-                        t.header.frame_id = 'cf1/camera_link'
-                        t.header.stamp = rospy.Time.now()
-                        t.child_frame_id = "landmark/detected_" + sign
-
-                        rotation = quaternion_from_euler(math.radians(rvec.ravel()[0]),
-                                                        math.radians(rvec.ravel()[1]),
-                                                        math.radians(rvec.ravel()[2]))
-
-                        self.br.sendTransform(
-                            tvec.ravel(), rotation, rospy.Time.now(), "landmark/detected_" + sign, 'cf1/camera_link')
+                        # t = TransformStamped()
+                        # t.header.frame_id = 'cf1/camera_link'
+                        # t.header.stamp = rospy.Time.now()
+                        # t.child_frame_id = "landmark/detected_" + sign
+                        #
+                        # rotation = quaternion_from_euler(math.radians(rvec.ravel()[0]),
+                        #                                 math.radians(rvec.ravel()[1]),
+                        #                                 math.radians(rvec.ravel()[2]))
+                        #
+                        # self.br.sendTransform(
+                        #     tvec.ravel(), rotation, rospy.Time.now(), "landmark/detected_" + sign, 'cf1/camera_link')
                         # ---------------------------------------------------------------------------------
 
         try:
