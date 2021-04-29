@@ -74,13 +74,15 @@ def transform_sign_and_publish(label, stamp, frame, translation, rotation):
 
 
 rospy.init_node('sign_publisher')
-sign_sub = rospy.Subscriber('/sign_poses', String, callback)
+sign_sub = rospy.Subscriber('/sign_poses', String, callback, queue_size=1, buff_size=2**24)
 broadcaster = tf2_ros.TransformBroadcaster()
-tf_buf   = tf2_ros.Buffer()
-tf_lstn  = tf2_ros.TransformListener(tf_buf)
+tf_buf = tf2_ros.Buffer()
+tf_lstn = tf2_ros.TransformListener(tf_buf)
+
 
 def main():
     rospy.spin()
+
 
 if __name__ == "__main__":
     main()

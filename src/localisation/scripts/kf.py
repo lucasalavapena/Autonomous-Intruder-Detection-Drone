@@ -81,7 +81,7 @@ def transform_stamped_to_pq(msg):
 
 print('Starting...')
 rospy.init_node('kf')
-pose_sub = rospy.Subscriber('/kf/input', TransformStamped, pose_callback)
+pose_sub = rospy.Subscriber('/kf/input', TransformStamped, pose_callback, queue_size=1, buff_size=2**24)
 pub = rospy.Publisher('kf/output', TransformStamped, queue_size=10)
 
 #  Initial State Matrix

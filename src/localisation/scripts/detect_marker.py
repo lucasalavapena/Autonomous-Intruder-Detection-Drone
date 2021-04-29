@@ -32,7 +32,7 @@ def broadcast_marker_transform(m):
 
 print("Starting...")
 rospy.init_node('detect_marker')
-sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback)
+sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback, queue_size=1, buff_size=2**24)
 tf_buf = tf2_ros.Buffer()
 tf_lstn = tf2_ros.TransformListener(tf_buf)
 br = tf2_ros.TransformBroadcaster()

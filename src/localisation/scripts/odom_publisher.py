@@ -119,11 +119,14 @@ def data_association(m):
 
     frame_detected = 'aruco/detected' + str(m.id)
 
+    #m.header.stamp = rospy.Time(0)
+
     n = 0
     while True:
         frame_map = "aruco/marker" + str(non_unique_id) + '_' + str(n)
         # Find transform of pose of static marker in map
         try:
+            #print(frame_map)
             t_map = tf_buf.lookup_transform(frame_detected, frame_map, m.header.stamp, rospy.Duration(tf_timeout))
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
             print(e)
@@ -135,7 +138,7 @@ def data_association(m):
 
         orientation_error = math.pi / 6
         if np.abs(yaw) <= orientation_error:
-            print("delta_norm for {} is {};\n yaw info: best {} curr {}".format(str(non_unique_id) + '_' + str(n), delta, best_yaw, yaw))
+            #print("delta_norm for {} is {};\n yaw info: best {} curr {}".format(str(non_unique_id) + '_' + str(n), delta, best_yaw, yaw))
             if (best_marker is None or yaw <= best_yaw) and delta < best_delta:
                 best_marker = t_map
                 best_delta = delta
@@ -189,8 +192,8 @@ rospy.init_node('odom_publisher')
 tf_buf = tf2_ros.Buffer()
 tf_lstn = tf2_ros.TransformListener(tf_buf)
 br = tf2_ros.TransformBroadcaster()
-sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback)
-sub_unique = rospy.Subscriber('/marker/unique', Int16MultiArray, unique_callback)
+sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback, queue_size=1, buff_size=2**24)
+sub_unique = rospy.Subscriber('/marker/unique', Int16MultiArray, unique_callback, queue_size=1, buff_size=2**24)
 pub = rospy.Publisher('localisation/is_localised', Bool, queue_size=10)
 pub_odom = rospy.Publisher('kf/input', TransformStamped, queue_size=10)
 

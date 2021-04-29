@@ -38,7 +38,7 @@ if __name__ == '__main__':
     tf_buf = tf2_ros.Buffer()
     tf_lstn = tf2_ros.TransformListener(tf_buf)
     br = tf2_ros.TransformBroadcaster()
-    sub = rospy.Subscriber('/cf1/pose', PoseStamped, pose_callback)
+    sub = rospy.Subscriber('/cf1/pose', PoseStamped, pose_callback, queue_size=1, buff_size=2**24)
     tf_timeout = rospy.get_param('~tf_timeout', 0.1)
     frame_id = rospy.get_param('~frame_id', 'cf1/base_stabilized')
     main()
