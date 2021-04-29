@@ -115,11 +115,13 @@
   <node type="rviz" name="rviz" pkg="rviz" args="-d $(find localisation)/config_file.rviz" />
 
   <!-- Localisation nodes -->
-  <node pkg="localisation" type="odom_publisher.py" name="odom_publisher" output="screen"/>
+  <node pkg="localisation" type="odom_publisher.py" name="odom_publisher"/> <!-- Data association and map->odom calculation -->
+  <node pkg="localisation" type="kf.py" name="kf"/> <!-- Kalman filter -->
+  <node pkg="localisation" type="actual_odom_publisher.py" name="actual_odom_publisher" /> <!-- Broadcasts map->odom -->
   <node pkg="localisation" type="detect_marker.py" name="detect_marker" />
 
   <!-- Perception nodes -->
-  <!-- <node pkg="perception" type="detection.py" name="detection" output="screen"/> -->
+  <node pkg="perception" type="detection.py" name="detection" output="screen"/>
 
   <!-- Utility nodes -->
   <node pkg="utilities" type="battery_check.py" name="battery_check" output="screen"/>
