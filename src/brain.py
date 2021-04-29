@@ -48,6 +48,7 @@ def main(args):
 
                 # emergency landing
                 if emergency_landing:
+                    print("emergency landing")
                     break
 
                 print("RRT start")
