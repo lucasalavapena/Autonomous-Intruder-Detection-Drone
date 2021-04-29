@@ -20,12 +20,20 @@ from dd2419_detector_baseline_OG import utils
 from dd2419_detector_baseline_OG.detector import Detector
 
 PX_PER_CM = 11.3
-
+INTRUDER_MSG =  """\n####################################\n#######  INTRUDER DETECTED  #######\n######\t\t{}\t\t######\n#######  INTRUDER DETECTED  #######\n####################################\n"""
 LABELS_PATH = "src/perception/scripts/dd2419_detector_baseline_OG/dd2419_coco/annotations/training.json"
 CWD = os.path.abspath(os.path.dirname(__file__))
 MODEL_PATH = os.path.join(
     CWD, "../models/det_2021-04-13_10-36-30-100473.pt")  # Current model
 AXIS = np.float32([[1, 0, 0], [0, 1, 0], [0, 0, 1]]).reshape(-1, 3)
+WARNING_ASCII = """
+ __          __     _____  _   _ _____ _   _  _____ 
+ \ \        / /\   |  __ \| \ | |_   _| \ | |/ ____|
+  \ \  /\  / /  \  | |__) |  \| | | | |  \| | |  __ 
+   \ \/  \/ / /\ \ |  _  /| . ` | | | | . ` | | |_ |
+    \  /\  / ____ \| | \ \| |\  |_| |_| |\  | |__| |
+     \/  \/_/    \_\_|  \_\_| \_|_____|_| \_|\_____|
+"""
 
 
 class image_converter:
@@ -224,6 +232,12 @@ class image_converter:
                 # detect features
                 kp, des = self.detect_features(cropped_img, detector=DETECTOR)
                 sign = category.replace(" ", "_")
+
+                # Intruder detection
+                if sign == INTRUDER:
+                    rospy.logwarn_throttle(0.5, WARNING_ASCII)
+                    rospy.logfatal_throttle(0.5, INTRUDER_MSG.format(sign.replace("_", " ")))
+
                 # find matches
                 matches = self.get_matches(
                     self.features[sign][DETECTOR]['des'],
@@ -305,7 +319,7 @@ def main(args):
 DETECTOR = rospy.get_param("~feature_detector", "SIFT")
 HARDWARE = rospy.get_param('~inference_hardware', 'cpu')
 PICKLE_FILE = rospy.get_param('~pickle_file', 'features.pickle')
-
+INTRUDER = rospy.get_param("~intruder", 'stop')
 NN_THRESHOLD = rospy.get_param("~nn_theshold", 0.75)
 
 if __name__ == '__main__':
