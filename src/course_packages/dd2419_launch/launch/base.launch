@@ -17,7 +17,7 @@
 
   -->
 
-  <arg name="marker_size"       default="0.20"/>    <!-- in m -->
+  <arg name="marker_size"       default="0.175"/>    <!-- in m -->
   <arg name="ch"/>
   <arg name="uri"               default="radio://0/$(arg ch)/2M" />
   <arg name="world_name"/>
@@ -99,7 +99,7 @@
   </node>
 
   <!-- Static transforms -->
-  <node pkg="tf2_ros" type="static_transform_publisher" name="cf_camera_trans" args="0 0 0.02 -1.57 0 -1.57 cf1/base_link cf1/camera_link" if="$(arg use_crazyflie)" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="cf_camera_trans" args="0 0 0.02 -1.54 0 -1.54 cf1/base_link cf1/camera_link" if="$(arg use_crazyflie)" />
   <!--   <node pkg="tf2_ros" type="static_transform_publisher" name="cf_camera_trans" args="0 0 0.02 -1.57 -1.57 3.14 cf1/base_link cf1/camera_link" if="$(arg use_crazyflie)" /> -->
   <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="test" args="1 1 0 0 0 0 1 cf1/base_link cf1/odom" if="$(arg use_crazyflie)" /> -->
   <node pkg="localisation" type="display_markers_map.py" name="display_markers_map" args="$(find dd2419_resources)/worlds_json/$(arg world_name).world.json" />
