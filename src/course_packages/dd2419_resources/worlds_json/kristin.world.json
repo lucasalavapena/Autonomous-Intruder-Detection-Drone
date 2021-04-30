@@ -16,7 +16,7 @@
     {"id": 0, "pose": {"position": [2.345,  0.63, 0.28], "orientation": [0.0, -90.0, -90.0]}},
     {"id": 0, "pose": {"position": [3.065,  1.42, 0.36], "orientation": [0.0, -90.0, -90.0]}},
     {"id": 0, "pose": {"position": [3.98,  1.295, 0.94], "orientation": [0.0, -90.0, 90.0]}},
-    {"id": 0, "pose": {"position": [3.51,  2.21, 0.575], "orientation": [0.0, -90.0, 180.0]}},
+    {"id": 0, "pose": {"position": [3.51,  2.21, 0.55], "orientation": [0.0, -90.0, 180.0]}},
     {"id": 0, "pose": {"position": [1.495,  2.21, 0.61], "orientation": [0.0, -90.0, 180.0]}},
     {"id": 0, "pose": {"position": [0.005,  1.63, 0.985], "orientation": [0.0, -90.0, -90.0]}}
   ],
