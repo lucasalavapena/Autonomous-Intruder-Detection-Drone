@@ -95,9 +95,13 @@ P = np.array([[1.0, 0.0, 0.0],
               [0.0, 0.0, 1.0]])
 
 # Process noise
-Q = np.array([[0.5, 0.0, 0.0],
-              [0.0, 0.5, 0.0],
-              [0.0, 0.0, 0.5]])
+Q = np.array([[1.0, 0.0, 0.0],
+              [0.0, 1.0, 0.0],
+              [0.0, 0.0, 1.0]])*10
+
+R = np.array([[1.0, 0.0, 0.0],
+              [0.0, 1.0, 0.0],
+              [0.0, 0.0, 1.0]])*10
 
 # Next state function F and measurement function H
 I = np.eye(3)
@@ -106,7 +110,6 @@ Z = np.zeros([3, 3])
 F = I
 #H = np.array(np.hstack((I, Z)))
 H = I
-R = H
 print('Ready')
 
 

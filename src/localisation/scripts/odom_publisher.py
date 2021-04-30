@@ -18,6 +18,7 @@ from tf.transformations import euler_from_quaternion,       \
 
 unique_id = None
 non_unique_id = None
+filt_tresh = np.pi/12
 
 
 def marker_callback(msg):
@@ -25,13 +26,23 @@ def marker_callback(msg):
     msg contains list of detected aruco markers and for each marker, determine if it's the unique marker or a
     non-unique marker. If unique, send msg to broadcast_transform(). Otherwise send msg to data_association().
     """
+    global filt_tresh
     is_localized()
     for m in msg.markers:
-        if m.id == unique_id:
-            marker_name_extension = str(m.id)
-            broadcast_transform(m, marker_name_extension)
+        p, q = msg_to_pq(m)
+        delta = np.linalg.norm(p)
+        #print('delta ' + str(delta))
+        roll, pitch, yaw = euler_from_quaternion(q)
+        #print('roll: ' + str(abs(abs(roll)-np.pi/2)) + ' pitch: ' + str(pitch) + ' yaw: ' + str(abs(abs(yaw)-np.pi/2)))
+        #print('treshold: ' + str(filt_tresh))
+        if delta < 1.5 and abs(pitch) < filt_tresh and abs(abs(roll)-np.pi/2) < filt_tresh and abs(abs(yaw)-np.pi/2) < filt_tresh:
+            if m.id == unique_id:
+                marker_name_extension = str(m.id)
+                broadcast_transform(m, marker_name_extension)
+            else:
+                data_association(m)
         else:
-            data_association(m)
+            print('filtered')
 
 
 def unique_callback(msg):
@@ -149,6 +160,20 @@ def data_association(m):
     if best_delta == 100 or best_yaw == 100:  # If no marker found was good enough, return nothing
         return None
     return broadcast_transform(m, marker_name_extension)
+
+
+def msg_to_pq(msg):
+    """Convert a C{geometry_msgs/Transform} into position/quaternion np arrays
+
+    @param msg: ROS message to be converted
+    @return:
+      - p: position as a np.array
+      - q: quaternion as a numpy array (order = [x,y,z,w])
+    """
+    p = np.array([msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z])
+    q = np.array([msg.pose.pose.orientation.x, msg.pose.pose.orientation.y,
+                  msg.pose.pose.orientation.z, msg.pose.pose.orientation.w])
+    return p, q
 
 
 def transform_to_pq(msg):
