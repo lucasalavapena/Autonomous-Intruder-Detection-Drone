@@ -159,7 +159,7 @@ def data_association(m):
     print('best: ' + marker_name_extension)
     if best_delta == 100 or best_yaw == 100:  # If no marker found was good enough, return nothing
         return None
-    return broadcast_transform(m, marker_name_extension)
+    broadcast_transform(m, marker_name_extension)
 
 
 def msg_to_pq(msg):
@@ -220,7 +220,7 @@ br = tf2_ros.TransformBroadcaster()
 sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback, queue_size=1, buff_size=2**24)
 sub_unique = rospy.Subscriber('/marker/unique', Int16MultiArray, unique_callback, queue_size=1, buff_size=2**24)
 pub = rospy.Publisher('localisation/is_localised', Bool, queue_size=10)
-pub_odom = rospy.Publisher('kf/input', TransformStamped, queue_size=10)
+pub_odom = rospy.Publisher('kf2/input', TransformStamped, queue_size=10)
 
 tf_timeout = rospy.get_param('~tf_timeout', 0.1)
 print('Ready')
