@@ -27,7 +27,7 @@ rospy.init_node('actual_odom_publisher')
 tf_buf = tf2_ros.Buffer()
 tf_lstn = tf2_ros.TransformListener(tf_buf)
 br = tf2_ros.TransformBroadcaster()
-pose_sub = rospy.Subscriber('/kf2/output', TransformStamped, callback, queue_size=1, buff_size=2**24)
+pose_sub = rospy.Subscriber('/kf3/output', TransformStamped, callback, queue_size=1, buff_size=2**24)
 tf_timeout = rospy.get_param('~tf_timeout', 0.1)
 transform = None
 print('Ready')
