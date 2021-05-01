@@ -42,10 +42,13 @@ class kalman_filter:
     def pose_callback(self, msg):
         p, q = self.transform_stamped_to_pq(msg)
         roll, pitch, yaw = euler_from_quaternion(q)
-        # Mean of the state: [x, y, yaw]
-        self.mu = array([[p[0]], [p[1]], [yaw]])
-        # self.mu = array([[2], [3], [4]])
+        
         if self.first_time:
+            # Mean of the state: [x, y, yaw]
+            self.mu = array([[p[0]], 
+                            [p[1]], 
+                            [yaw]
+                            ])
             # Covariance of the state
             self.sigma = eye(3)*0.01
             # Measurment model
@@ -70,7 +73,6 @@ class kalman_filter:
 
         # Measurment model
         self.z = array([[p[0]], [p[1]], [yaw]]) #array([p[0], p[1], yaw])
-        # self.z = array([2, 3, 4]) #array([[2], [3], [4]])
 
 
         # Update the transform with the updated variables
