@@ -2,17 +2,18 @@
 
   "airspace": {
     "min": [0, 0, 0.0],
-    "max": [ 2.45,  2.0, 2.5]
+    "max": [ 2.51,  2.10, 2.5]
   },
 
   "gate_size": [0.40, 0.40],
-  "marker_size": [0.145, 0.155],
+  "marker_size": [0.175, 0.175],
   "roadsign_size": [0.19, 0.19],
 
   "markers": [
-    {"id": 1, "pose": {"position": [2.445, 0.37, 0.4], "orientation": [0.0, -90.0, 90.0]}},
-    {"id": 4, "pose": {"position": [0.005, 0.33, 0.37], "orientation": [0.0, -90.0, -90.0]}},
-    {"id": 4, "pose": {"position": [2.445,  0.875, 0.4], "orientation": [0.0, -90.0, 90.0]}}
+    {"id": 5, "pose": {"position": [2.505, 0.60, 0.39], "orientation": [0.0, -90.0, 90.0]}},
+    {"id": 0, "pose": {"position": [0.005, 0.3375, 0.55], "orientation": [0.0, -90.0, -90.0]}},
+    {"id": 0, "pose": {"position": [1.21,  0.005, 0.39], "orientation": [0.0, -90.0, 0.0]}},
+    {"id": 0, "pose": {"position": [1.515,  2.095, 0.48], "orientation": [0.0, -90.0, 180.0]}}
   ],
 
   "walls": [
@@ -20,7 +21,7 @@
 
   "roadsigns": [
     {"sign": "airport",                 "pose": {"position": [0.005, 0.33, 0.95], "orientation": [0.0, -90.0, -90.0]}},
-    {"sign": "dangerous_curve_left",    "pose": {"position": [0.005, 0.33, 0.64], "orientation": [0.0, -90.0, -90.0]}}
+    {"sign": "dangerous_curve_left",    "pose": {"position": [0.005, 0.33, 1.20], "orientation": [0.0, -90.0, -90.0]}}
   ],
 
   "gates": []
