@@ -12,29 +12,29 @@ dt = 0.05
 class kalman_filter:
     def __init__(self):
         # initial state (location and velocity)
-        self.x = np.zeros((6,1)) # [x, y, theta, x', y', theta']
+        self.x = np.zeros((6, 1))  # [x, y, theta, x', y', theta']
         self.u = np.array([[0.], [0.], [0.], [0.]])  # external motion (zero as of now)
 
         # initial uncertainty: 0 for positions x and y, 1000 for the two velocities
         self.P = np.zeros((6, 6))
-        self.P[3,3] = self.P[4,4] = self.P[5,5] = 1000
+        self.P[3, 3] = self.P[4, 4] = self.P[5, 5] = 1000
         # next state function: generalize the 2d version to 4d
         self.F = np.eye(6)
         # self.F[0,3] = self.F[1,4] = self.F[2,5] = dt
         # measurement function: reflect the fact that we observe x and y but not the two velocities
         # self.H = np.zeros((6,6))
         # self.H[0,0] = self.H[1,1] = self.H[4,4] = 1
-        self.H = np.zeros((3,6))
-        self.H[0,0] = self.H[1,1] = self.H[2,3] = 1
+        self.H = np.zeros((3, 6))
+        self.H[0, 0] = self.H[1, 1] = self.H[2, 2] = 1
         # measurement uncertainty: use 2x2 matrix with 0.1 as main diagonal
         self.R = np.eye(3) * 0.1
         self.I = np.eye(6)
 
         self.first_time = True
 
-        self.pose_sub = rospy.Subscriber('/kf3/input', TransformStamped, self.pose_callback,
+        self.pose_sub = rospy.Subscriber('/kf4/input', TransformStamped, self.pose_callback,
                                          queue_size=1, buff_size=2 ** 24)
-        self.pub = rospy.Publisher('kf3/output', TransformStamped, queue_size=10)
+        self.pub = rospy.Publisher('/kf4/output', TransformStamped, queue_size=10)
 
     def pose_callback(self, msg):
         p, q = self.transform_stamped_to_pq(msg)
@@ -46,23 +46,23 @@ class kalman_filter:
             self.first_time = False
         else:
             # print("Uncertainty before update:\n{}".format(self.P))
-            self.kf(self.x[0], self.x[1], self.x[2])
+            self.kf(self.x[0], self.x[1], self.x[2], msg)
             # print("Uncertainty after update:\n{}".format(self.P))
 
         # Update the transform with the updated variables
-        msg.transform.translation.x = self.x[0]  # x
-        msg.transform.translation.y = self.x[1]  # y
-        
-        (msg.transform.rotation.x,
-         msg.transform.rotation.y,
-         msg.transform.rotation.z,
-         msg.transform.rotation.w) = quaternion_from_euler(0, 0, -self.x[2])  # yaw
-        print("state:\n{}".format(self.x))
-        self.pub.publish(msg)
+        # msg.transform.translation.x = self.x[0]  # x
+        # msg.transform.translation.y = self.x[1]  # y
+        #
+        # (msg.transform.rotation.x,
+        #  msg.transform.rotation.y,
+        #  msg.transform.rotation.z,
+        #  msg.transform.rotation.w) = quaternion_from_euler(0, 0, -self.x[2])  # yaw
+        # print("state:\n{}".format(self.x))
+        # self.pub.publish(msg)
 
-    def kf(self, x_measured, y_measured, yaw_measured):
+    def kf(self, x_measured, y_measured, yaw_measured, msg):
         # measurement
-        Z = np.zeros((3,1))
+        Z = np.zeros((3, 1))
         Z[0] = x_measured
         Z[1] = y_measured
         Z[2] = yaw_measured
@@ -80,10 +80,20 @@ class kalman_filter:
         self.x = self.x + np.dot(K, y)
         self.P = np.dot((self.I - np.dot(K, self.H)), self.P)
 
+        # Update the transform with the updated variables
+        msg.transform.translation.x = self.x[0]  # x
+        msg.transform.translation.y = self.x[1]  # y
+
+        (msg.transform.rotation.x,
+         msg.transform.rotation.y,
+         msg.transform.rotation.z,
+         msg.transform.rotation.w) = quaternion_from_euler(0, 0, -self.x[2])  # yaw
+        print("state:\n{}".format(self.x))
+        self.pub.publish(msg)
+
         # predict
         self.x = np.dot(self.F, self.x) # + u
         self.P = np.dot(np.dot(self.F, self.P), np.transpose(self.F))
-
 
     def transform_to_pq(self, msg):
         """Convert a C{geometry_msgs/Transform} into position/quaternion np arrays
