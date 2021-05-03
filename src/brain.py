@@ -25,7 +25,7 @@ def battery_callback(data):
     global emergency_landing
     battery = (data.data - 3.0) / (4.23 - 3.0) * 100
 
-    if battery < 30:
+    if battery < 10:
         emergency_landing = True
 
 def main(args):
@@ -47,18 +47,29 @@ def main(args):
             if planner.pose_map is not None:
 
                 # emergency landing
-                if emergency_landing:
-                    print("emergency landing")
-                    break
+                # if emergency_landing:
+                #     print("emergency landing")
+                #     break
 
                 print("RRT start")
                 x = planner.pose_map.pose.position.x
                 y = planner.pose_map.pose.position.y
 
                 planner.publish_occ() # publishes occupancy grid
-                next_best_point, _ = planner.explorer.generate_next_best_view((x, y))
+                next_best_point, score = planner.explorer.generate_next_best_view((x, y))
+
+                if next_best_point is None and score is None:
+                    print("results are None")
+                    continue
+
+
                 path = planning_utils.RRT(x, y, next_best_point[0], next_best_point[1], world_map)
                 rospy.loginfo_throttle(5, 'Path:\n%s', path)
+
+                # If path is empty we are outside of the map
+                # try to go into the map
+                # if len(path) == 0:
+                #     path = planning_utils.escape_boundary(x, y, next_best_point[0], next_best_point[1], world_map)
 
                 path_msg = [planner.create_msg(a, b, 0.3) for (a, b) in path]
 

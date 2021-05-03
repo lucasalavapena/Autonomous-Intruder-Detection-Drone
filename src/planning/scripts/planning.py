@@ -46,8 +46,9 @@ class PathPlanner:
         :param goal: goal position
         :return: true if the goal is met else false
         """
-        # rospy.loginfo_throttle(5, 'current_info:\n%s', current_info)
-        # rospy.loginfo_throttle(5, 'goal:\n%s', goal)
+        # if self.current_info:
+        #     rospy.loginfo_throttle(1, 'current_info:\n%s', self.current_info)
+        #     rospy.loginfo_throttle(1, 'goal:\n%s', goal)
         if (goal.x + self.ERROR_TOLERANCE > self.current_info.pose.position.x > goal.x - self.ERROR_TOLERANCE and
                 goal.y + self.ERROR_TOLERANCE > self.current_info.pose.position.y > goal.y - self.ERROR_TOLERANCE and
                 goal.z + self.ERROR_TOLERANCE > self.current_info.pose.position.z > goal.z - self.ERROR_TOLERANCE):
@@ -75,8 +76,8 @@ class PathPlanner:
         msg.pose.position.z = z
         msg.pose.orientation.y = 0
         msg.pose.orientation.x = 0
-        msg.pose.orientation.z = 0
-        msg.pose.orientation.w = 1
+        msg.pose.orientation.z = 1
+        msg.pose.orientation.w = 6.123234e-17
         return msg
 
     def convert_pose_to_map(self):

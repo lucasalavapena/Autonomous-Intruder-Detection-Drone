@@ -43,11 +43,29 @@ def RRT(curr_x, curr_y, goal_x, goal_y, Map):
         i += 1
 
         if i >= 1000:
+            print("broke from RRT at {} {} {} {}".format(curr_x, curr_y, goal_x, goal_y))
+            print("Map is")
+            print(Map)
             break
 
     path = generate_path(Tree[-1])
 
     return path
+
+# def escape_boundary(curr_x, curr_y, goal_x, goal_y, Map):
+#
+#     dx = 0
+#     dy = 0
+#
+#     if x + DRONE_MAX_SIDE + self.expansion_factor > self.airspace[3] or x - DRONE_MAX_SIDE - self.expansion_factor <
+#             self.airspace[0] or y + DRONE_MAX_SIDE + self.expansion_factor > self.airspace[
+#         4] or y - DRONE_MAX_SIDE - self.expansion_factor < self.airspace[1]:
+#
+#     if Map.airspace[0] >= curr_x + DRONE_MAX_SIDE + Map.expansion_factor :
+#         dx +=
+#     if Map.airspace[3] <= x:
+#     Map.is_passable(x, y)
+
 
 def generate_path(node):
     """
@@ -145,10 +163,13 @@ class Map:
         self.airspace = None
         self.mesh_grid = None
         self.occupancy_grid = None
+        self.expansion_factor = expansion_factor
         self.build_map(map_path, expansion_factor)
 
     def __str__(self):
-        return "obstacles: {}\n airspace: {}".format(self.obstacles, self.airspace)
+        return "obstacles: {}\n airspace: {} self.expansion_factor: {}".format(self.obstacles,
+                                                                               self.airspace,
+                                                                               self.expansion_factor)
 
     def build_map(self, map_path, expansion_factor, discretization=0.05):
         """
@@ -210,8 +231,10 @@ class Map:
         checks if a
         """
         # check if it is within the airspace
-        if x + DRONE_MAX_SIDE > self.airspace[3] or x - DRONE_MAX_SIDE < self.airspace[0]   or y + DRONE_MAX_SIDE > self.airspace[4] or y - DRONE_MAX_SIDE < self.airspace[1]:
+        if x + DRONE_MAX_SIDE + self.expansion_factor > self.airspace[3] or x - DRONE_MAX_SIDE - self.expansion_factor < self.airspace[0]   or y + DRONE_MAX_SIDE + self.expansion_factor > self.airspace[4] or y - DRONE_MAX_SIDE - self.expansion_factor < self.airspace[1]:
             return False
+        # if x + DRONE_MAX_SIDE > self.airspace[3] or x - DRONE_MAX_SIDE < self.airspace[0] or y + DRONE_MAX_SIDE > self.airspace[4] or y - DRONE_MAX_SIDE < self.airspace[1]:
+        #     return False
         # check against obstacles
         for obs in self.obstacles:
             x_start, y_start, _, x_end, y_end, _ = obs
@@ -225,10 +248,10 @@ def test():
     my_path = os.path.abspath(os.path.dirname(__file__))
     file = "lucas_room_screen.world.json"
     map_path = os.path.join(my_path, "../..", "course_packages/dd2419_resources/worlds_json", file)
-    world_map = Map(map_path)
+    world_map = Map(map_path, expansion_factor=0.15)
     print(world_map)
     # world_map = Map("src/course_packages/dd2419_resources/worlds_json/tutorial_1.world.json")
-    result = RRT(0.5, 0.8, 1.6, 1, world_map)
+    result = RRT(1.84359645078, 0.695349467324, 0.6, 1.3, world_map)
     print(result)
 if __name__ == "__main__":
     test()

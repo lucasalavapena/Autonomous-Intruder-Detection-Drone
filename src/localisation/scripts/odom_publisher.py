@@ -19,7 +19,8 @@ from tf.transformations import euler_from_quaternion,       \
 unique_id = None
 non_unique_id = None
 filt_tresh = np.pi/12
-
+THROTTLE_PERIOD = 1
+VERBOSE = True
 
 def marker_callback(msg):
     """
@@ -42,7 +43,8 @@ def marker_callback(msg):
             else:
                 data_association(m)
         else:
-            print('filtered')
+            pass
+            # print('filtered')
 
 
 def unique_callback(msg):
@@ -210,19 +212,28 @@ def data_association(m):
 
         delta = np.linalg.norm(trans_map)
         roll, pitch, yaw = euler_from_quaternion(rot_map)
+        yaw = roll # because of aruco marker orientation
+        rospy.loginfo('\n\nn: %s,\n frame_detected: %s,\n frame_map: %s,\n rot_map: %s,\n roll: %s,\n pitch: %s,\n yaw: %s\n\n',
+                      n, frame_detected, frame_map, rot_map, roll, pitch, yaw)
 
         orientation_error = math.pi / 6
         if np.abs(yaw) <= orientation_error:
             #print("delta_norm for {} is {};\n yaw info: best {} curr {}".format(str(non_unique_id) + '_' + str(n), delta, best_yaw, yaw))
-            if (best_marker is None or yaw <= best_yaw) and delta < best_delta:
+            # if VERBOSE:
+            rospy.loginfo('\n\nn: %s,\n yaw: %s,\n best_yaw: %s,\n delta: %s,\n best_delta: %s\n\n',
+                                       n, yaw, best_yaw, delta, best_delta)
+
+            if (best_marker is None or np.abs(yaw) <= best_yaw) and delta < best_delta:
                 best_marker = t_map
                 best_delta = delta
-                best_yaw = yaw
+                best_yaw = np.abs(yaw)
                 marker_name_extension = str(non_unique_id) + '_' + str(n)
         n += 1
-    print('best: ' + marker_name_extension)
+    # print('best: ' + marker_name_extension)
     if best_delta == 100 or best_yaw == 100:  # If no marker found was good enough, return nothing
         return None
+    rospy.loginfo('\n\nbroadcasting %s\n\n',
+                  marker_name_extension)
     broadcast_transform(m, marker_name_extension)
 
 
@@ -285,7 +296,7 @@ sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback, qu
 sub_unique = rospy.Subscriber('/marker/unique', Int16MultiArray, unique_callback, queue_size=1, buff_size=2**24)
 sign_sub = rospy.Subscriber('/sign_detected', TransformStamped, sign_callback, queue_size=1, buff_size=2**24)
 pub = rospy.Publisher('localisation/is_localised', Bool, queue_size=10)
-pub_odom = rospy.Publisher('/kf4/input', TransformStamped, queue_size=10)
+pub_odom = rospy.Publisher('/kf6/output', TransformStamped, queue_size=10)
 #pub_odom = rospy.Publisher('/localisation/moving_average_input', TransformStamped, queue_size=10)
 
 tf_timeout = rospy.get_param('~tf_timeout', 0.1)
