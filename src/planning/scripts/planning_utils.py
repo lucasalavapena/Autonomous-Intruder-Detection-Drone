@@ -13,7 +13,7 @@ from itertools import product
 # random.seed(19)
 DRONE_MAX_SIDE = 0.15
 
-def RRT(curr_x, curr_y, goal_x, goal_y, Map):
+def RRT(curr_x, curr_y, goal_x, goal_y, curr_theta, Map):
     """
     computes the RRT path
     :param curr_x:
@@ -23,7 +23,7 @@ def RRT(curr_x, curr_y, goal_x, goal_y, Map):
     :param Map:
     :return:
     """
-    start_node = Node(curr_x, curr_y)
+    start_node = Node(curr_x, curr_y, theta=curr_theta)
     goal_node = Node(goal_x, goal_y)
     Tree = [start_node]
 
@@ -36,7 +36,9 @@ def RRT(curr_x, curr_y, goal_x, goal_y, Map):
         new_node = grow(rand_node, nearest_node, Map)
 
         if new_node != -1:
+            new_node.theta = calc_phi(nearest_node, new_node)
             Tree.append(new_node)
+
 
         if distance(Tree[-1], goal_node) <= 0.2:
             break
@@ -67,18 +69,39 @@ def RRT(curr_x, curr_y, goal_x, goal_y, Map):
 #     Map.is_passable(x, y)
 
 
+def calc_phi(from_node, to_node, delta_angle=np.pi/4):
+    e_z = np.array([0, 0, 1])
+    v = np.array([math.cos(from_node.theta), math.sin(from_node.theta), 0])
+    r_g = np.array([to_node.x - from_node.x, to_node.y - from_node.y, 0])
+    res = np.dot(np.cross(v, r_g), e_z)
+
+    # return res
+    if res > 0:
+        if res > delta_angle:
+            phi = delta_angle
+        else:
+            phi = res
+    elif res < 0:
+        if res < -delta_angle:
+            phi = -delta_angle
+        else:
+            phi = res
+    else:
+        phi = 0
+    return from_node.theta # + phi
+
 def generate_path(node):
     """
     generates the path
     :param node:
     :return:
     """
-    path = [(node.x, node.y)]
+    path = [(node.x, node.y, node.theta)]
     tmp = node
     parent = tmp.parent
 
     while parent is not None:
-        path.insert(0, (parent.x, parent.y))
+        path.insert(0, (parent.x, parent.y, parent.theta))
         tmp = parent
         parent = tmp.parent
 
@@ -147,9 +170,10 @@ def random_node(airspace, goal, prob_goal=0.2):
 
 
 class Node:
-    def __init__(self, x, y):
+    def __init__(self, x, y, theta=None):
         self.x = x
         self.y = y
+        self.theta = theta
         self.parent = None
     def __str__(self):
         return "(x: {}, y:{})".format(self.x, self.y)

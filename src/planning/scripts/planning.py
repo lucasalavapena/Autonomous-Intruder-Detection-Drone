@@ -4,7 +4,7 @@ from __future__ import print_function
 import math
 import rospy
 import tf2_ros
-from tf.transformations import euler_from_quaternion
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
 from nav_msgs.msg import OccupancyGrid
 import tf2_geometry_msgs
 from geometry_msgs.msg import PoseStamped
@@ -15,7 +15,7 @@ from exploration_utils import DoraTheExplorer
 import numpy as np
 
 class PathPlanner:
-    def __init__(self, Explorer, error_tol=0.06):
+    def __init__(self, Explorer, error_tol=0.03):
         self.sub_goal = rospy.Subscriber('/cf1/pose', PoseStamped, self.pose_callback)
         self.pub_cmd = rospy.Publisher('/cf1/cmd_position', Position, queue_size=2)
         self.tf_buf = tf2_ros.Buffer()
@@ -61,7 +61,7 @@ class PathPlanner:
         else:
             return False
 
-    def create_msg(self, x, y, z):
+    def create_msg(self, x, y, z, yaw_angle=None):
         """
         creates a posestamped message to be used for setting set points
         :param x:
@@ -74,10 +74,13 @@ class PathPlanner:
         msg.pose.position.x = x
         msg.pose.position.y = y
         msg.pose.position.z = z
-        msg.pose.orientation.y = 0
-        msg.pose.orientation.x = 0
-        msg.pose.orientation.z = 1
-        msg.pose.orientation.w = 6.123234e-17
+        if yaw_angle is None:
+            msg.pose.orientation.y = 0
+            msg.pose.orientation.x = 0
+            msg.pose.orientation.z = 1
+            msg.pose.orientation.w = 6.123234e-17
+        else:
+            msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w = quaternion_from_euler(0, 0, yaw_angle)
         return msg
 
     def convert_pose_to_map(self):

@@ -29,13 +29,13 @@ class CrazyflieCamera:
 
 
 class DoraTheExplorer:
-    def __init__(self, map_path, discretization=0.05, CrazyFlie_Render=0.85):
+    def __init__(self, map_path, discretization=0.05, CrazyFlie_Render=0.1, expansion_factor=0.1):
         """
         DoraTheExplorer constructor
         :param map_path: path to the world.json file
         :param discretization: discretization in m/cell
         """
-        self.Map = Map(map_path)
+        self.Map = Map(map_path, expansion_factor=expansion_factor)
         self.camera = CrazyflieCamera(CrazyFlie_FOV - 20, CrazyFlie_Render)
         self.mesh_grid = None
         self.visited_grid = None
@@ -71,7 +71,9 @@ class DoraTheExplorer:
         self.mesh_grid = [list(product([x_value], y_values)) for x_value in x_values]
         self.points_set = set(list(product(x_values, y_values)))
         self.visited_grid = np.zeros((no_x, no_y))
-        self.occ_grid.info = MapMetaData(width=no_y, height=no_x, resolution=self.discretization,
+        # self.occ_grid.info = MapMetaData(width=no_y, height=no_x, resolution=self.discretization,
+        #                                  map_load_time=rospy.Time.now())
+        self.occ_grid.info = MapMetaData(width=no_x, height=no_y, resolution=self.discretization,
                                          map_load_time=rospy.Time.now())
         self.occ_grid.data = np.zeros((no_x, no_y)).ravel()
         # Hard coded
@@ -108,6 +110,8 @@ class DoraTheExplorer:
                             return False
             return True
 
+        x_idx = None
+        y_idx = None
         # get the index of the point wrt discretised map
         for i in range(len(self.mesh_grid)):
             if self.mesh_grid[i][0][0] - self.discretization/2 <= point[0] <= self.mesh_grid[i][0][0] + self.discretization/2:
@@ -116,6 +120,9 @@ class DoraTheExplorer:
         for j in range(self.visited_grid.shape[1]):
             if self.mesh_grid[0][j][1] - self.discretization/2 <= point[1] <= self.mesh_grid[0][j][1] + self.discretization/2:
                 y_idx = j
+
+        if x_idx is None or y_idx is None:
+            return None
 
         # to cover the the 0.5 m
         number_of_idx = int(self.camera.render_distance / self.discretization)
@@ -144,6 +151,13 @@ class DoraTheExplorer:
             print("error")
 
 
+    def update_occ_grid(self, curr_position=None):
+        self.visited_grid = self.viewable_points(curr_position, "Current")
+        self.occ_grid.header.stamp = rospy.Time.now()
+        self.occ_grid.info.map_load_time = self.occ_grid.header.stamp
+        self.occ_grid.data = 100 * np.transpose(self.visited_grid).astype("int8").ravel()
+
+
     def generate_next_best_view(self, curr_position=None):
         """
         generates the next best point to visit (given your previous visit history) for a single point
@@ -152,11 +166,8 @@ class DoraTheExplorer:
         """
 
         # 1. decide how much we can view
-        self.visited_grid = self.viewable_points(curr_position, "Current")
-        self.occ_grid.header.stamp = rospy.Time.now()
-        self.occ_grid.info.map_load_time = self.occ_grid.header.stamp
-        # print(self.visited_grid)
-        self.occ_grid.data = 100 * self.visited_grid.astype("int8").ravel()
+        self.update_occ_grid(curr_position)
+
         # print(self.occ_grid.data, self.occ_grid.data.shape)
         # 2. generate random points or all of them and check new things they can view
         best_result = [None, 0]
@@ -164,6 +175,8 @@ class DoraTheExplorer:
         for point in self.points_set:
             if self.Map.is_passable(*point):
                 visited = self.viewable_points(point, "Test")
+                if visited is None:
+                    return None, None
                 usefulness = np.sum(np.logical_or(self.visited_grid, visited))
                 if usefulness > best_result[1]:
                     best_result = [point, usefulness]
@@ -208,8 +221,7 @@ def test():
     my_path = os.path.abspath(os.path.dirname(__file__))
     file = "joakimV2.world.json" #"lucas_room_screen.world.json"
     map_path = os.path.join(my_path, "../..", "course_packages/dd2419_resources/worlds_json", file)
-    Dora = DoraTheExplorer(map_path)
-    print(Dora.generate_best_path((1.2, 0.13), True))
+    Dora = DoraTheExplorer(map_path, expansion_factor=0.22)
+    print(Dora.generate_best_path((0.5, 0.5), True))
 if __name__ == "__main__":
     test()
-

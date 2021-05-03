@@ -4,9 +4,10 @@ import rospy
 import os
 import tf2_ros
 import tf2_geometry_msgs
-
+import numpy as np
 import argparse
 from planning.scripts import planning, planning_utils, exploration_utils
+from tf.transformations import euler_from_quaternion
 
 from std_msgs.msg import Bool, Float32
 
@@ -52,26 +53,43 @@ def main(args):
                 #     break
 
                 print("RRT start")
+                #
+                # if not has_taken_off:
+                #     x = planner.pose_map.pose.position.x
+                #     y = planner.pose_map.pose.position.y
+                #     has_taken_off = True
+                # else:
+                #     x = next_best_point[0]
+                #     y = next_best_point[1]
+
+
                 x = planner.pose_map.pose.position.x
                 y = planner.pose_map.pose.position.y
+                # has_taken_off = True
 
-                planner.publish_occ() # publishes occupancy grid
+
+                quat = np.array([planner.pose_map.pose.orientation.x, planner.pose_map.pose.orientation.y,
+                                 planner.pose_map.pose.orientation.z, planner.pose_map.pose.orientation.w])
+                _, _, curr_yaw = euler_from_quaternion(quat)
+
+                print("current yaw is", curr_yaw)
                 next_best_point, score = planner.explorer.generate_next_best_view((x, y))
+                planner.publish_occ() # publishes occupancy grid
 
                 if next_best_point is None and score is None:
                     print("results are None")
                     continue
 
 
-                path = planning_utils.RRT(x, y, next_best_point[0], next_best_point[1], world_map)
-                rospy.loginfo_throttle(5, 'Path:\n%s', path)
+                path = planning_utils.RRT(x, y, next_best_point[0], next_best_point[1], curr_yaw, world_map)
+                rospy.loginfo_throttle(1, 'Path:\n%s', path)
 
                 # If path is empty we are outside of the map
                 # try to go into the map
                 # if len(path) == 0:
                 #     path = planning_utils.escape_boundary(x, y, next_best_point[0], next_best_point[1], world_map)
 
-                path_msg = [planner.create_msg(a, b, 0.3) for (a, b) in path]
+                path_msg = [planner.create_msg(x_loc, y_loc, 0.3, yaw_angle=theta) for (x_loc, y_loc, theta) in path]
 
 
 
@@ -80,8 +98,10 @@ def main(args):
                     if not has_taken_off:
                         path_msg.insert(0, planner.create_msg(x, y, 0.3))
                         has_taken_off = True
+                        # planner.publish_occ()
                 else:
                     print('No Path')
+                # rospy.sleep(5)
 
                 for pnt in path_msg:
                     planner.publish_cmd(pnt)
@@ -89,8 +109,18 @@ def main(args):
                     while not planner.goal_is_met(planner.current_goal_odom):
                         planner.publish_cmd(pnt)
                         rate.sleep()
+
+                    if not has_taken_off:
+                        has_taken_off = True
+                        planner.d360_yaw()
+
                 if has_taken_off:
                     planner.d360_yaw()
+                    planner.explorer.update_occ_grid((next_best_point[0], next_best_point[1]))
+                    planner.publish_occ()
+
+                # planner.publish_occ()
+
                 print("Completed best view point")
 
 # arguments

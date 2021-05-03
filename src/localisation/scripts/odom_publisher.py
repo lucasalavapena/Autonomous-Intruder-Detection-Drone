@@ -296,7 +296,7 @@ sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback, qu
 sub_unique = rospy.Subscriber('/marker/unique', Int16MultiArray, unique_callback, queue_size=1, buff_size=2**24)
 sign_sub = rospy.Subscriber('/sign_detected', TransformStamped, sign_callback, queue_size=1, buff_size=2**24)
 pub = rospy.Publisher('localisation/is_localised', Bool, queue_size=10)
-pub_odom = rospy.Publisher('/kf6/output', TransformStamped, queue_size=10)
+pub_odom = rospy.Publisher('/kf4/output', TransformStamped, queue_size=10)
 #pub_odom = rospy.Publisher('/localisation/moving_average_input', TransformStamped, queue_size=10)
 
 tf_timeout = rospy.get_param('~tf_timeout', 0.1)
