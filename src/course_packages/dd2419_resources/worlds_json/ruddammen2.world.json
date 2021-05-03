@@ -1,0 +1,37 @@
+{
+
+  "airspace": {
+    "min": [0, 0, 0.0],
+    "max": [2.22, 1.45, 2.5]
+  },
+
+  "gate_size": [0.40, 0.40],
+  "marker_size": [0.175, 0.175],
+  "roadsign_size": [0.19, 0.19],
+
+  "markers": [
+    {"id": 2, "pose": {"position": [0.0, 0.605, 0.22], "orientation": [0.0, -90.0, -90.0]}},
+    {"id": 0, "pose": {"position": [1.045, 0.72, 0.28], "orientation": [0.0, -90.0, 90.0]}},
+    {"id": 0, "pose": {"position": [1.80,  0.0, 0.285], "orientation": [0.0, -90.0, 0.0]}},
+    {"id": 0, "pose": {"position": [2.21,  1.145, 0.64], "orientation": [0.0, -90.0, 90.0]}},
+    {"id": 0, "pose": {"position": [1.655,  1.44, 0.555], "orientation": [0.0, -90.0, 180.0]}}
+  ],
+
+  "walls": [
+    {"plane": {"start": [1.05,  0.54, 0.0], "stop": [1.05,  0.94, 1.0]}},
+    {"plane": {"start": [1.05,  0.94, 0.0], "stop": [1.57,  0.94, 1.0]}},
+    {"plane": {"start": [1.05,  0.54, 0.0], "stop": [1.57,  0.54, 1.0]}},
+    {"plane": {"start": [1.57,  0.54, 0.0], "stop": [1.57,  0.94, 1.0]}}
+  ],
+
+  "roadsigns": [
+    {"sign": "no_bicycle", "pose": {"position": [0.6,  0.0, 0.63], "orientation": [0.0, -90.0, 0.0]}},
+    {"sign": "junction", "pose": {"position": [2.21,  0.915, 0.61], "orientation": [0.0, -90.0, 90.0]}},
+    {"sign": "residential", "pose": {"position": [0.70,  1.44, 0.63], "orientation": [0.0, -90.0, 180.0]}}
+  ],
+
+  "gates": []
+
+}
+
+
