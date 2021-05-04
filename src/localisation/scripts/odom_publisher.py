@@ -56,10 +56,6 @@ def unique_callback(msg):
     unique_id = msg.data[0]
     non_unique_id = msg.data[1]
 
-def sign_callback(msg):
-    for sign in msg.markers:
-            broadcast_transform(sign)
-
 
 def broadcast_transform(m, marker_name_extension):
     """
@@ -76,66 +72,6 @@ def broadcast_transform(m, marker_name_extension):
     # Find transform of pose of odom in detected marker frame
     try:
         detected = tf_buf.lookup_transform('aruco/detected' + str(m.id), 'cf1/odom', m.header.stamp, rospy.Duration(tf_timeout))
-    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-        print('odom_publisher.broadcast_transform(detected lookup): ', e)
-        return
-    trans_detected, rot_detected = transform_stamped_to_pq(detected)
-
-    # Find transform of pose of static marker in map frame
-    try:
-        t_map = tf_buf.lookup_transform('map', 'aruco/marker' + marker_name_extension, m.header.stamp)
-    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-        print('odom_publisher.broadcast_transform(marker lookup): ', e)
-        return
-    trans_map, rot_map = transform_stamped_to_pq(t_map)
-
-    # Calculate resulting rotation between map and odom
-    # Change the detected marker in to 4x4 matrices and combine them
-    detected_mat = np.dot(translation_matrix(trans_detected), quaternion_matrix(rot_detected))
-
-    # Change the map marker in to 4x4 matrices and combine them
-    map_mat = np.dot(translation_matrix(trans_map), quaternion_matrix(rot_map))
-
-    # Calculate resulting 4x4 matrix, separate in to 2 matrices
-    result_mat = np.dot(map_mat, detected_mat)
-    trans_result = translation_from_matrix(result_mat)
-    rot_result = quaternion_from_matrix(result_mat)
-
-    # Create new message with time stamps and frames
-    t = TransformStamped()
-    t.header = m.header
-    t.header.frame_id = 'map'
-    t.child_frame_id = 'cf1/odom'
-
-    (t.transform.translation.x,
-     t.transform.translation.y,
-     t.transform.translation.z) = trans_result
-    t.transform.translation.z = 0.0
-
-    roll, pitch, yaw = euler_from_quaternion(rot_result)
-    rot_result = quaternion_from_euler(0, 0, yaw)
-    (t.transform.rotation.x,
-     t.transform.rotation.y,
-     t.transform.rotation.z,
-     t.transform.rotation.w) = rot_result
-
-    pub_odom.publish(t)
-
-def broadcast_sign_transform(m, marker_name_extension):
-    """
-    By assuming that the pose of detected marker = pose of static marker in map, get transforms from map->static marker
-    and detected marker->odom (which is the inverse) use matrix dot multiplication to find relative difference between
-    the transforms. This difference is then the resulting translation and rotation vectors describing map->cf1/odom.
-    Because the problem is simplified with frames cf1/base_link, cf1/base_stabilized and cf1/base_footprint, z, roll
-    and pitch are set to 0.
-
-    :param m: message containing marker information
-    :param marker_name_extension: if non-unique marker ID, describes the unique name extension
-    :broadcast t: broadcast calculated map->cf1/odom transfer with z, roll, pitch = 0
-    """
-    # Find transform of pose of odom in detected marker frame
-    try:
-        detected = tf_buf.lookup_transform('landmark/detected_' + label, 'cf1/odom', m.header.stamp, rospy.Duration(tf_timeout))
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
         print('odom_publisher.broadcast_transform(detected lookup): ', e)
         return
@@ -294,7 +230,6 @@ tf_lstn = tf2_ros.TransformListener(tf_buf)
 br = tf2_ros.TransformBroadcaster()
 sub_marker = rospy.Subscriber('/aruco/markers', MarkerArray, marker_callback, queue_size=1, buff_size=2**24)
 sub_unique = rospy.Subscriber('/marker/unique', Int16MultiArray, unique_callback, queue_size=1, buff_size=2**24)
-sign_sub = rospy.Subscriber('/sign_detected', TransformStamped, sign_callback, queue_size=1, buff_size=2**24)
 pub = rospy.Publisher('localisation/is_localised', Bool, queue_size=10)
 pub_odom = rospy.Publisher('/kf4/output', TransformStamped, queue_size=10)
 #pub_odom = rospy.Publisher('/localisation/moving_average_input', TransformStamped, queue_size=10)
