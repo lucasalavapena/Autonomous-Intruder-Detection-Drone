@@ -24,14 +24,15 @@ def sign_callback(transform):
     non-unique marker. If unique, send msg to broadcast_transform(). Otherwise send msg to data_association().
     """
     global filt_tresh
-    p, q = msg_to_pq(transform)
-    delta = np.linalg.norm(p)
+    # p, q = transform_stamped_to_pq(transform)
+    # delta = np.linalg.norm(p)
     #print('delta ' + str(delta))
-    roll, pitch, yaw = euler_from_quaternion(q)
+    # roll, pitch, yaw = euler_from_quaternion(q)
     #print('roll: ' + str(abs(abs(roll)-np.pi/2)) + ' pitch: ' + str(pitch) + ' yaw: ' + str(abs(abs(yaw)-np.pi/2)))
     #print('treshold: ' + str(filt_tresh))
-    if delta < 1.5 and abs(pitch) < filt_tresh and abs(abs(roll)-np.pi/2) < filt_tresh and abs(abs(yaw)-np.pi/2) < filt_tresh:
-        broadcast_transform(transform)
+    # if delta < 1.5 and abs(pitch) < filt_tresh and abs(abs(roll)-np.pi/2) < filt_tresh and abs(abs(yaw)-np.pi/2) < filt_tresh:
+    sign_filtering(transform)
+    # print("USED TRANSFORM HELL YEAH BOOOOJ")
 
 
 def broadcast_sign_transform(s):
@@ -56,7 +57,7 @@ def broadcast_sign_transform(s):
 
     # Find transform of pose of static marker in map frame
     try:
-        t_map = tf_buf.lookup_transform('map', 'landmark/' + s.child_frame_id[18:]), s.header.stamp)
+        t_map = tf_buf.lookup_transform('map', 'landmark/' + s.child_frame_id[18:], s.header.stamp)
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
         print('odom_publisher.broadcast_transform(marker lookup): ', e)
         return
@@ -93,6 +94,39 @@ def broadcast_sign_transform(s):
      t.transform.rotation.w) = rot_result
 
     pub_odom.publish(t)
+
+def sign_filtering(s):
+    """
+      Using transform detected marker->odom, calculate relative difference in yaw rotation using map->static markers of
+      [id] and send the best match to broadcast_transform() (if match).
+      :param m:
+      :return t: Transform of map->odom using the most correct marker found.
+      """
+
+    #m.header.stamp = rospy.Time(0)
+
+    frame_map =  'landmark/' + s.child_frame_id[18:]
+    # Find transform of pose of static marker in map
+    try:
+        #print(frame_map)
+        t_map = tf_buf.lookup_transform(s.child_frame_id, frame_map, s.header.stamp, rospy.Duration(tf_timeout))
+    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+        print(e)
+        return  # if n exceeds number for last non-unique static marker in map, end the loop.
+    trans_map, rot_map = transform_stamped_to_pq(t_map)
+
+    delta = np.linalg.norm(trans_map)
+    roll, pitch, yaw = euler_from_quaternion(rot_map)
+    yaw = roll # because of aruco marker orientation
+
+
+    orientation_error = math.pi / 30
+    if np.abs(yaw) <= orientation_error and delta <= 0.25:
+        broadcast_sign_transform(s)
+        print("\n########## USED DETECTED SIGN TRANSFORM ##########\nyaw: {YAW}, delta: {DELTA}\n".format(YAW=abs(yaw), DELTA=delta))
+    else:
+        print("sign filtered | yaw: {YAW}, delta: {DELTA}".format(YAW=abs(yaw), DELTA=delta))
+
 
 
 def msg_to_pq(msg):
@@ -144,7 +178,7 @@ tf_buf = tf2_ros.Buffer()
 tf_lstn = tf2_ros.TransformListener(tf_buf)
 br = tf2_ros.TransformBroadcaster()
 sign_sub = rospy.Subscriber('/sign/detected', TransformStamped, sign_callback, queue_size=1, buff_size=2**24)
-pub_odom = rospy.Publisher('/kf4/input', TransformStamped, queue_size=10)
+pub_odom = rospy.Publisher('/kf4/output', TransformStamped, queue_size=10)
 #pub_odom = rospy.Publisher('/localisation/moving_average_input', TransformStamped, queue_size=10)
 
 tf_timeout = rospy.get_param('~tf_timeout', 0.1)

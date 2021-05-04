@@ -116,7 +116,7 @@ def main(args):
 
                 if has_taken_off:
                     planner.d360_yaw()
-                    planner.explorer.update_occ_grid((next_best_point[0], next_best_point[1]))
+                    # planner.explorer.update_occ_grid((next_best_point[0], next_best_point[1]))
                     planner.publish_occ()
 
                 # planner.publish_occ()

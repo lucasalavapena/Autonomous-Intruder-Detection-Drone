@@ -116,12 +116,13 @@
 
   <!-- Localisation nodes -->
   <node pkg="localisation" type="odom_publisher.py" name="odom_publisher"/> <!-- Data association and map->odom calculation -->
-  <node pkg="localisation" type="sign_odom_publisher.py" name="sign_odom_publisher"/> <!-- map->odom calculations for traffic signs -->
+  <node pkg="localisation" type="sign_odom_publisher.py" name="sign_odom_publisher" output="screen"/> <!--map->odom calculations for traffic signs-->
 <!--   <node pkg="localisation" type="kf.py" name="kf"/>  --><!-- Kalman filter -->
 <!--   <node pkg="localisation" type="kf2.py" name="kf2" output="screen"/> -->
+  <node pkg="localisation" type="kf4.py" name="kf4"/>
   <node pkg="localisation" type="actual_odom_publisher.py" name="actual_odom_publisher" /> <!-- Broadcasts map->odom -->
   <node pkg="localisation" type="detect_marker.py" name="detect_marker" />
-    <node pkg="localisation" type="sign_publisher.py" name="sign_publisher" />
+    <node pkg="localisation" type="sign_publisher.py" name="sign_publisher"/>
 
   <!-- Perception nodes -->
   <node pkg="perception" type="detection.py" name="detection" output="screen"/>

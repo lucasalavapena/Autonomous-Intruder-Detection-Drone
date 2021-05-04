@@ -15,8 +15,8 @@ class kalman_filter:
         self.x = np.zeros((6, 1))  # [x, y, theta, x', y', theta']
 
         # initial uncertainty: 0 for positions x and y, 1000 for the two velocities
-        self.P = np.eye(6) * 0.1
-        self.P[3, 3] = self.P[4, 4] = self.P[5, 5] = 100
+        self.P = np.zeros((6,6))
+        self.P[3, 3] = self.P[4, 4] = self.P[5, 5] = 1000
         # next state function: generalize the 2d version to 4d
         self.F = np.eye(6)
         self.F[0,3] = self.F[1,4] = self.F[2,5] = dt
@@ -25,8 +25,8 @@ class kalman_filter:
         self.H = np.zeros((3, 6))
         self.H[0, 0] = self.H[1, 1] = self.H[2, 2] = 1
         # measurement uncertainty: use 2x2 matrix with 0.1 as main diagonal
-        self.R = np.eye(3) * 0.1
-        self.Q = np.eye(6) * 0.1
+        self.R = np.eye(3) * 100
+        self.Q = np.eye(6) * 0.01
         self.I = np.eye(6)
 
         self.first_time = True
@@ -50,17 +50,6 @@ class kalman_filter:
             self.kf(p[0], p[1], yaw, msg)
             # print("Uncertainty after update:\n{}".format(self.P))
 
-        # Update the transform with the updated variables
-        # msg.transform.translation.x = self.x[0]  # x
-        # msg.transform.translation.y = self.x[1]  # y
-        
-        # (msg.transform.rotation.x,
-        #  msg.transform.rotation.y,
-        #  msg.transform.rotation.z,
-        #  msg.transform.rotation.w) = quaternion_from_euler(0, 0, -self.x[2])  # yaw
-        # print("state:\n{}".format(self.x))
-        # self.pub.publish(msg)
-
     def kf(self, x_measured, y_measured, yaw_measured, msg):
         # measurement
         Z = np.array([[x_measured], [y_measured], [yaw_measured]])
@@ -70,7 +59,9 @@ class kalman_filter:
         # err between actual observation and expected observation
         y = Z - np.dot(self.H, self.x)
         y[2] = (y[2] + np.pi) % (2 * np.pi) - np.pi
-        print("innovation:\n{}".format(y))
+
+        # print("Norm of innovation: {}".format(np.linalg.norm(y)))
+
         S = np.dot(np.dot(self.H, self.P), np.transpose(self.H)) + self.R
         K = np.dot(np.dot(self.P, np.transpose(self.H)), np.linalg.inv(S))
 
@@ -94,6 +85,7 @@ class kalman_filter:
          msg.transform.rotation.z,
          msg.transform.rotation.w) = quaternion_from_euler(0, 0, -yaw)  # yaw
         self.pub.publish(msg)
+        print("Kalman results - x: {X}, y: {Y}, yaw: {YAW}".format(X=x, Y=y, YAW=yaw))
 
     def transform_to_pq(self, msg):
         """Convert a C{geometry_msgs/Transform} into position/quaternion np arrays

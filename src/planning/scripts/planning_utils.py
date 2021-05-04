@@ -12,6 +12,7 @@ from itertools import product
 # for test
 # random.seed(19)
 DRONE_MAX_SIDE = 0.15
+PRINT = False
 
 def RRT(curr_x, curr_y, goal_x, goal_y, curr_theta, Map):
     """
@@ -45,9 +46,10 @@ def RRT(curr_x, curr_y, goal_x, goal_y, curr_theta, Map):
         i += 1
 
         if i >= 1000:
-            print("broke from RRT at {} {} {} {}".format(curr_x, curr_y, goal_x, goal_y))
-            print("Map is")
-            print(Map)
+            if PRINT:
+                print("broke from RRT at {} {} {} {}".format(curr_x, curr_y, goal_x, goal_y))
+                print("Map is")
+                print(Map)
             break
 
     path = generate_path(Tree[-1])
@@ -75,7 +77,6 @@ def calc_phi(from_node, to_node, delta_angle=np.pi/4):
     r_g = np.array([to_node.x - from_node.x, to_node.y - from_node.y, 0])
     res = np.dot(np.cross(v, r_g), e_z)
 
-    # return res
     if res > 0:
         if res > delta_angle:
             phi = delta_angle
@@ -88,7 +89,7 @@ def calc_phi(from_node, to_node, delta_angle=np.pi/4):
             phi = res
     else:
         phi = 0
-    return from_node.theta # + phi
+    return from_node.theta + phi
 
 def generate_path(node):
     """

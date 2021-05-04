@@ -319,7 +319,7 @@ def main(args):
 DETECTOR = rospy.get_param("~feature_detector", "SIFT")
 HARDWARE = rospy.get_param('~inference_hardware', 'cpu')
 PICKLE_FILE = rospy.get_param('~pickle_file', 'features.pickle')
-INTRUDER = rospy.get_param("~intruder", 'stop')
+INTRUDER = rospy.get_param("~intruder", 'residential')
 NN_THRESHOLD = rospy.get_param("~nn_theshold", 0.75)
 
 if __name__ == '__main__':

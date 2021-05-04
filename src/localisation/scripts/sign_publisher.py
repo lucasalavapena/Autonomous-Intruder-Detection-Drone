@@ -9,7 +9,10 @@ from std_msgs.msg import String
 from tf.transformations import quaternion_from_euler,      \
                                 translation_matrix,         \
                                 quaternion_matrix,          \
-                                quaternion_from_matrix
+                                quaternion_from_matrix,     \
+                                euler_from_quaternion
+
+pi_half = np.pi/2
 
 def callback(msg):
     parse(msg)
@@ -24,7 +27,11 @@ def parse(str):
     frame = data[3]
     position = np.fromstring(data[4])
     orientation = np.fromstring(data[5])
+    orientation[0] += -pi_half
+    orientation[2] += -pi_half
+    # print("SIGN: roll: {}, pitch: {}, yaw: {}".format(orientation[0], orientation[1], orientation[2]))
     orientation = quaternion_from_euler(*orientation.tolist())
+    
 
     transform_sign_and_publish(label, stamp, frame, position, orientation)
 
@@ -43,21 +50,21 @@ def transform_to_pq(msg):
 
 def transform_sign_and_publish(label, stamp, frame, translation, rotation):
 
-    timeout = rospy.Duration(0.1)
+    # timeout = rospy.Duration(0.1)
 
-    # Lookput transform from camera link to canonical sign
-    try:
-        t_canon_to_cam = tf_buf.lookup_transform(frame, 'landmark/' + label, rospy.Time.now(), timeout)
-    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
-        rospy.logwarn_throttle(5.0, 'sign_publisher.broadcast_transform(marker lookup): {}'.format(e))
-        return
-    canon_trans, canon_rot = transform_to_pq(t_canon_to_cam.transform)
+    # # Lookput transform from camera link to canonical sign
+    # try:
+    #     t_canon_to_cam = tf_buf.lookup_transform(frame, 'landmark/' + label, rospy.Time.now(), timeout)
+    # except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e:
+    #     rospy.logwarn_throttle(5.0, 'sign_publisher.broadcast_transform(marker lookup): {}'.format(e))
+    #     return
+    # canon_trans, canon_rot = transform_to_pq(t_canon_to_cam.transform)
 
-    detected_mat = np.dot(translation_matrix(translation), quaternion_matrix(rotation))
-    canon_mat = np.dot(translation_matrix(canon_trans), quaternion_matrix(canon_rot))
+    # detected_mat = np.dot(translation_matrix(translation), quaternion_matrix(rotation))
+    # canon_mat = np.dot(translation_matrix(canon_trans), quaternion_matrix(canon_rot))
 
-    result_mat = np.dot(canon_mat, detected_mat)
-    rot_result = quaternion_from_matrix(result_mat)
+    # result_mat = np.dot(canon_mat, detected_mat)
+    # rot_result = quaternion_from_matrix(result_mat)
 
     t = TransformStamped()
     t.header.frame_id = frame
@@ -69,7 +76,7 @@ def transform_sign_and_publish(label, stamp, frame, translation, rotation):
     (t.transform.rotation.x,
     t.transform.rotation.y,
     t.transform.rotation.z,
-    t.transform.rotation.w) = rot_result.tolist()
+    t.transform.rotation.w) = rotation.tolist()
     broadcaster.sendTransform(t)
     sign_pub.publish(t)
 
