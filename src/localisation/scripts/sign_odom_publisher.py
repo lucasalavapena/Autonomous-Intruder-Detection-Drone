@@ -138,8 +138,8 @@ def main():
     rospy.spin()
 
 
-print('Starting...')
-rospy.init_node('odom_publisher')
+#print('Starting...')
+rospy.init_node('sign_odom_publisher')
 tf_buf = tf2_ros.Buffer()
 tf_lstn = tf2_ros.TransformListener(tf_buf)
 br = tf2_ros.TransformBroadcaster()
